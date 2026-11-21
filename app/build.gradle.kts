@@ -21,6 +21,22 @@ android {
         versionName = "1.0"
     }
 
+    // Secrets live in ~/.gradle/gradle.properties (dosetrack.*), never in this repo.
+    signingConfigs {
+        create("release") {
+            storeFile = providers.gradleProperty("dosetrack.storeFile").orNull?.let { file(it) }
+            storePassword = providers.gradleProperty("dosetrack.storePassword").orNull
+            keyAlias = providers.gradleProperty("dosetrack.keyAlias").orNull
+            keyPassword = providers.gradleProperty("dosetrack.keyPassword").orNull
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

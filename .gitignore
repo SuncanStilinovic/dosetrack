@@ -20,3 +20,7 @@ replay_pid*
 
 # Claude Code local settings
 .claude/
+
+# Signing keys
+*.jks
+*.keystore
