@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dosetrack.data.DataRules
 import com.dosetrack.data.model.Injection
 import com.dosetrack.data.model.SitePoint
 import com.dosetrack.data.repository.InjectionRepository
@@ -73,11 +74,11 @@ class LogEntryViewModel(
     }
 
     fun updateReactionNote(note: String) {
-        uiState = uiState.copy(reactionNote = note)
+        uiState = uiState.copy(reactionNote = note.take(DataRules.MAX_NOTE_LENGTH))
     }
 
     fun updateNotes(notes: String) {
-        uiState = uiState.copy(notes = notes)
+        uiState = uiState.copy(notes = notes.take(DataRules.MAX_NOTE_LENGTH))
     }
 
     fun save(onDone: () -> Unit) {

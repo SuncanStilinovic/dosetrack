@@ -10,6 +10,7 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -23,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.dosetrack.data.DataRules
 import com.dosetrack.util.toDisplayString
 import java.time.Instant
 import java.time.ZoneId
@@ -35,6 +37,7 @@ fun DateTimePickerField(
     onValueChange: (Instant) -> Unit,
     modifier: Modifier = Modifier,
     maxInstant: Instant = Instant.now(),
+    minInstant: Instant = DataRules.EARLIEST_INSTANT,
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -58,8 +61,24 @@ fun DateTimePickerField(
     }
 
     if (showDatePicker) {
+        // DatePicker works in UTC-midnight millis of the calendar date, so compare local dates.
+        val minDate = maxOf(DataRules.EARLIEST_DATE, minInstant.atZone(zone).toLocalDate())
+        val maxDate = maxInstant.atZone(zone).toLocalDate()
+        val selectable = remember(minDate, maxDate) {
+            object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    val date = Instant.ofEpochMilli(utcTimeMillis).atZone(ZoneOffset.UTC).toLocalDate()
+                    return !date.isBefore(minDate) && !date.isAfter(maxDate)
+                }
+
+                override fun isSelectableYear(year: Int): Boolean = year in minDate.year..maxDate.year
+            }
+        }
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = value.toEpochMilli(),
+            initialSelectedDateMillis = value.atZone(zone).toLocalDate()
+                .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+            yearRange = minDate.year..maxDate.year,
+            selectableDates = selectable,
         )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -96,7 +115,7 @@ fun DateTimePickerField(
                         .atTime(timePickerState.hour, timePickerState.minute)
                         .atZone(zone)
                         .toInstant()
-                    onValueChange(if (combined.isAfter(maxInstant)) maxInstant else combined)
+                    onValueChange(combined.coerceIn(maxOf(minInstant, DataRules.EARLIEST_INSTANT), maxInstant))
                     showTimePicker = false
                 }) { Text("OK") }
             },

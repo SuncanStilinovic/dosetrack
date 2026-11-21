@@ -1,5 +1,6 @@
 package com.dosetrack.ui.logentry
 
+import com.dosetrack.data.DataRules
 import com.dosetrack.data.model.Medication
 import com.dosetrack.data.model.SitePoint
 import java.time.Instant
@@ -18,5 +19,5 @@ data class LogEntryUiState(
     val showGuide: Boolean = false,
 ) {
     val isValid: Boolean
-        get() = isNoteOnly || site != null
+        get() = (isNoteOnly || site != null) && DataRules.isValidRecordInstant(timestamp)
 }

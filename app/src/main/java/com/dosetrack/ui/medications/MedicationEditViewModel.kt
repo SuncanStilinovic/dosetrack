@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dosetrack.data.DataRules
 import com.dosetrack.data.model.DosageUnit
 import com.dosetrack.data.model.Medication
 import com.dosetrack.data.repository.MedicationRepository
@@ -18,7 +19,14 @@ data class MedicationEditUiState(
     val isSaved: Boolean = false,
 ) {
     val isValid: Boolean
-        get() = name.isNotBlank() && dosageAmount.toDoubleOrNull() != null
+        get() = name.isNotBlank() && parsedAmount != null
+
+    /** Only positive, finite amounts: "NaN", "Infinity", 0 or negatives couldn't be restored from a backup. */
+    val parsedAmount: Double?
+        get() = dosageAmount.trim().toDoubleOrNull()?.takeIf(DataRules::isValidDosageAmount)
+
+    val showAmountError: Boolean
+        get() = dosageAmount.isNotBlank() && parsedAmount == null
 }
 
 class MedicationEditViewModel(
@@ -45,7 +53,7 @@ class MedicationEditViewModel(
     }
 
     fun updateName(name: String) {
-        uiState = uiState.copy(name = name)
+        uiState = uiState.copy(name = name.take(DataRules.MAX_NAME_LENGTH))
     }
 
     fun updateDosageAmount(amount: String) {
@@ -57,7 +65,7 @@ class MedicationEditViewModel(
     }
 
     fun save(onDone: () -> Unit) {
-        val amount = uiState.dosageAmount.toDoubleOrNull() ?: return
+        val amount = uiState.parsedAmount ?: return
         if (uiState.name.isBlank()) return
         viewModelScope.launch {
             repository.save(

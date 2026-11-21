@@ -28,7 +28,6 @@ object BackupCrypto {
 
     const val FILE_EXTENSION = "dtbackup"
     const val MIME_TYPE = "application/octet-stream"
-    const val MIN_PASSWORD_LENGTH = 8
 
     /** OWASP's current recommendation for PBKDF2-HMAC-SHA256; stored per file so it can be raised later. */
     const val DEFAULT_ITERATIONS = 600_000

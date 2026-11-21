@@ -64,6 +64,12 @@ fun MedicationEditScreen(
                 value = uiState.dosageAmount,
                 onValueChange = viewModel::updateDosageAmount,
                 label = { Text("Dosage amount") },
+                isError = uiState.showAmountError,
+                supportingText = if (uiState.showAmountError) {
+                    { Text("Enter a number greater than 0") }
+                } else {
+                    null
+                },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )

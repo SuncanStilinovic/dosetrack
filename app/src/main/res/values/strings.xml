@@ -2,8 +2,9 @@
 <resources>
     <string name="app_name">DoseTrack</string>
     <string name="reminder_channel_name">Injection reminders</string>
-    <string name="reminder_notification_title">Time for your injection</string>
-    <string name="reminder_notification_body">Tap to log it in DoseTrack.</string>
+    <!-- Deliberately neutral: many phones show full notification text on the lock screen. -->
+    <string name="reminder_notification_title">DoseTrack reminder</string>
+    <string name="reminder_notification_body">Tap to open DoseTrack.</string>
     <string name="reminder_notification_public_title">DoseTrack</string>
     <string name="reminder_notification_public_body">You have a reminder.</string>
 </resources>

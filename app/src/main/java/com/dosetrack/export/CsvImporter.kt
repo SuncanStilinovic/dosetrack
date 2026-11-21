@@ -1,5 +1,6 @@
 package com.dosetrack.export
 
+import com.dosetrack.data.DataRules
 import com.dosetrack.data.model.DosageUnit
 import com.dosetrack.data.model.SitePoint
 import com.dosetrack.data.settings.AppSettings
@@ -54,7 +55,11 @@ object CsvImporter {
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
-    fun parse(text: String, zone: ZoneId = ZoneId.systemDefault()): ParsedBackup {
+    /**
+     * Values outside [DataRules] (dates before 2026 or in the future, over-long text, impossible
+     * dosages) are rejected per row, exactly as the input screens would reject them.
+     */
+    fun parse(text: String, zone: ZoneId = ZoneId.systemDefault(), now: Instant = Instant.now()): ParsedBackup {
         val records = CsvParser.parse(text)
         if (records.isEmpty()) throw InvalidImportFileException("The file is empty.")
 
@@ -67,16 +72,16 @@ object CsvImporter {
                         "This backup was made by a newer version of DoseTrack. Update the app and try again.",
                     )
                 }
-                parseBackup(records.drop(1))
+                parseBackup(records.drop(1), now)
             }
-            first.matchesHeader(CsvExporter.LEGACY_HEADER) -> parseLegacy(records.drop(1), zone)
+            first.matchesHeader(CsvExporter.LEGACY_HEADER) -> parseLegacy(records.drop(1), zone, now)
             else -> throw InvalidImportFileException("This doesn't look like a DoseTrack backup file.")
         }
     }
 
     // region Format 2: sectioned full backup
 
-    private fun parseBackup(records: List<List<String>>): ParsedBackup {
+    private fun parseBackup(records: List<List<String>>, now: Instant): ParsedBackup {
         val sections = splitSections(records)
         val medicationRows = sections[CsvExporter.SECTION_MEDICATIONS]
             ?: throw InvalidImportFileException("The backup is missing its medications section.")
@@ -85,15 +90,15 @@ object CsvImporter {
 
         var invalid = 0
         val medications = rowsUnder(medicationRows, CsvExporter.MEDICATION_HEADER).mapNotNull { record ->
-            parseMedication(record).also { if (it == null) invalid++ }
+            parseMedication(record, now).also { if (it == null) invalid++ }
         }
         val knownIds = medications.map { it.backupId }.toSet()
         val injections = rowsUnder(injectionRows, CsvExporter.INJECTION_HEADER).mapNotNull { record ->
-            parseInjection(record, knownIds).also { if (it == null) invalid++ }
+            parseInjection(record, knownIds, now).also { if (it == null) invalid++ }
         }
         val settings = sections[CsvExporter.SECTION_SETTINGS]
             ?.let { rowsUnder(it, CsvExporter.SETTINGS_HEADER) }
-            ?.let(::parseSettings)
+            ?.let { parseSettings(it, now) }
 
         return ParsedBackup(medications, injections, settings, invalid)
     }
@@ -122,19 +127,21 @@ object CsvImporter {
         return section.drop(1)
     }
 
-    private fun parseMedication(r: List<String>): BackupMedication? {
+    private fun parseMedication(r: List<String>, now: Instant): BackupMedication? {
         if (r.size != CsvExporter.MEDICATION_HEADER.size) return null
         return BackupMedication(
             backupId = r[0].trim().toLongOrNull() ?: return null,
-            name = r[1].trim().ifBlank { return null },
-            dosageAmount = r[2].trim().toDoubleOrNull()?.takeIf { it > 0 } ?: return null,
+            name = r[1].trim().takeIf { it.isNotEmpty() && it.length <= DataRules.MAX_NAME_LENGTH } ?: return null,
+            dosageAmount = r[2].trim().toDoubleOrNull()?.takeIf(DataRules::isValidDosageAmount) ?: return null,
             dosageUnit = enumOrNull<DosageUnit>(r[3]) ?: return null,
             isDeleted = r[4].isYes(),
-            createdAt = instantOrNull(r[5]) ?: return null,
+            createdAt = recordInstant(r[5], now) ?: return null,
         )
     }
 
-    private fun parseInjection(r: List<String>, knownMedicationIds: Set<Long>): BackupInjection? {
+    private fun parseInjection(r: List<String>, knownMedicationIds: Set<Long>, now: Instant): BackupInjection? {
+        val notes = noteOrInvalid(r[4]) ?: return null
+        val reactionNote = noteOrInvalid(r[6]) ?: return null
         if (r.size != CsvExporter.INJECTION_HEADER.size) return null
         val site = parseSite(r[7], r[8]) ?: return null
         val isNoteOnly = when (r[9].trim()) {
@@ -146,19 +153,19 @@ object CsvImporter {
         val medicationId = r[10].trim().ifBlank { null }?.let { it.toLongOrNull() ?: return null }
         if (medicationId != null && medicationId !in knownMedicationIds) return null
         return BackupInjection(
-            timestamp = instantOrNull(r[11]) ?: return null,
+            timestamp = recordInstant(r[11], now) ?: return null,
             isNoteOnly = isNoteOnly,
             site = site.value,
             backupMedicationId = medicationId,
             hadReaction = r[5].isYes(),
-            reactionNote = r[6].ifBlank { null },
-            notes = r[4].ifBlank { null },
-            createdAt = instantOrNull(r[12]),
-            updatedAt = instantOrNull(r[13]),
+            reactionNote = reactionNote.value,
+            notes = notes.value,
+            createdAt = recordInstant(r[12], now),
+            updatedAt = recordInstant(r[13], now),
         )
     }
 
-    private fun parseSettings(rows: List<List<String>>): AppSettings {
+    private fun parseSettings(rows: List<List<String>>, now: Instant): AppSettings {
         val values = rows.filter { it.size == 2 }.associate { it[0].trim() to it[1].trim() }
         val defaults = AppSettings()
         val reminderDefaults = defaults.reminderConfig
@@ -180,7 +187,10 @@ object CsvImporter {
                     ?: reminderDefaults.intervalValue,
                 intervalUnit = values[SettingKeys.REMINDER_INTERVAL_UNIT]?.let { enumOrNull<IntervalUnit>(it) }
                     ?: reminderDefaults.intervalUnit,
-                startAt = values[SettingKeys.REMINDER_START_AT]?.let(::instantOrNull) ?: reminderDefaults.startAt,
+                startAt = values[SettingKeys.REMINDER_START_AT]
+                    ?.let { parseInstant(it) }
+                    ?.takeIf { DataRules.isValidReminderStart(it, now) }
+                    ?: reminderDefaults.startAt,
             ),
         )
     }
@@ -189,12 +199,12 @@ object CsvImporter {
 
     // region Format 1: history-only export (no medication list, minute precision, no settings)
 
-    private fun parseLegacy(records: List<List<String>>, zone: ZoneId): ParsedBackup {
+    private fun parseLegacy(records: List<List<String>>, zone: ZoneId, now: Instant): ParsedBackup {
         val medications = mutableListOf<BackupMedication>()
         val medicationIds = mutableMapOf<Pair<String, String>, Long>()
         var invalid = 0
         val injections = records.mapNotNull { r ->
-            parseLegacyRow(r, zone, medications, medicationIds).also { if (it == null) invalid++ }
+            parseLegacyRow(r, zone, now, medications, medicationIds).also { if (it == null) invalid++ }
         }
         return ParsedBackup(medications, injections, settings = null, invalidRows = invalid)
     }
@@ -202,6 +212,7 @@ object CsvImporter {
     private fun parseLegacyRow(
         r: List<String>,
         zone: ZoneId,
+        now: Instant,
         medications: MutableList<BackupMedication>,
         medicationIds: MutableMap<Pair<String, String>, Long>,
     ): BackupInjection? {
@@ -211,7 +222,7 @@ object CsvImporter {
                 .atTime(LocalTime.parse(r[1].trim(), timeFormatter))
                 .atZone(zone)
                 .toInstant()
-                .inSaneRange()
+                .takeIf { DataRules.isValidRecordInstant(it, now) }
                 ?: return null
         } catch (e: DateTimeParseException) {
             return null
@@ -221,12 +232,16 @@ object CsvImporter {
         // Format 1 has no medication list: synthesise one entry per distinct name + dosage.
         val name = r[2].trim()
         val dosageLabel = r[3].trim()
+        if (name.length > DataRules.MAX_NAME_LENGTH) return null
+        val notes = noteOrInvalid(r[4]) ?: return null
+        val reactionNote = noteOrInvalid(r[6]) ?: return null
         val medicationId = if (name.isEmpty()) {
             null
         } else {
             val key = name.lowercase() to dosageLabel.lowercase()
             medicationIds[key] ?: run {
                 val (amount, unit) = parseDosage(dosageLabel) ?: return null
+                if (!DataRules.isValidDosageAmount(amount)) return null
                 val id = medications.size.toLong() + 1
                 medications += BackupMedication(id, name, amount, unit, isDeleted = false, createdAt = Instant.now())
                 medicationIds[key] = id
@@ -240,8 +255,8 @@ object CsvImporter {
             site = site.value,
             backupMedicationId = medicationId,
             hadReaction = r[5].isYes(),
-            reactionNote = r[6].ifBlank { null },
-            notes = r[4].ifBlank { null },
+            reactionNote = reactionNote.value,
+            notes = notes.value,
             createdAt = null,
             updatedAt = null,
         )
@@ -277,18 +292,25 @@ object CsvImporter {
     private fun String.isYes() = trim().equals("yes", ignoreCase = true)
 
     /**
-     * Only dates a real backup can contain are accepted. Without this bound a crafted file could
-     * carry e.g. year -1000000000, which overflows epoch millis (crash) or breaks reminder maths.
+     * A record date (2026 up to now) or null. Besides enforcing the app's rules, this keeps crafted
+     * values such as year -1000000000 out, which would overflow epoch millis or break reminder maths.
      */
-    private val EARLIEST = Instant.parse("1970-01-01T00:00:00Z")
-    private val LATEST = Instant.parse("2100-01-01T00:00:00Z")
+    private fun recordInstant(text: String, now: Instant): Instant? =
+        parseInstant(text)?.takeIf { DataRules.isValidRecordInstant(it, now) }
 
-    private fun Instant.inSaneRange(): Instant? = takeIf { !it.isBefore(EARLIEST) && it.isBefore(LATEST) }
-
-    private fun instantOrNull(text: String): Instant? = try {
-        Instant.parse(text.trim()).inSaneRange()
+    private fun parseInstant(text: String): Instant? = try {
+        Instant.parse(text.trim())
     } catch (e: DateTimeParseException) {
         null
+    }
+
+    /** Wraps an optional note so "empty" (valid, null) can be told apart from "too long" (invalid). */
+    private class ParsedNote(val value: String?)
+
+    private fun noteOrInvalid(text: String): ParsedNote? = when {
+        text.isBlank() -> ParsedNote(null)
+        text.length > DataRules.MAX_NOTE_LENGTH -> null
+        else -> ParsedNote(text)
     }
 
     private inline fun <reified T : Enum<T>> enumOrNull(text: String): T? =
