@@ -167,7 +167,9 @@ private fun IntervalFields(config: ReminderConfig, onConfigChange: (ReminderConf
         OutlinedTextField(
             value = config.intervalValue.toString(),
             onValueChange = { value ->
-                value.toIntOrNull()?.let { onConfigChange(config.copy(intervalValue = it)) }
+                value.toIntOrNull()
+                    ?.takeIf { it in ReminderConfig.INTERVAL_RANGE }
+                    ?.let { onConfigChange(config.copy(intervalValue = it)) }
             },
             label = { Text("Every") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),

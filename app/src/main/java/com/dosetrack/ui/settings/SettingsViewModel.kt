@@ -13,6 +13,7 @@ import com.dosetrack.export.InvalidImportFileException
 import com.dosetrack.export.PasswordRequiredException
 import com.dosetrack.export.WrongPasswordException
 import com.dosetrack.reminders.AlarmScheduler
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -118,6 +119,10 @@ class SettingsViewModel(
                 ExportUiState.Failed("Couldn't save the backup.")
             } catch (e: SecurityException) {
                 ExportUiState.Failed("Couldn't save the backup.")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                ExportUiState.Failed("Couldn't create the backup.")
             } finally {
                 password.fill('\u0000')
             }
@@ -147,6 +152,12 @@ class SettingsViewModel(
                 ImportUiState.Failed("The file couldn't be read.")
             } catch (e: SecurityException) {
                 ImportUiState.Failed("DoseTrack wasn't given access to that file.")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Anything unforeseen in a damaged or hostile file must fail the import, not crash the app.
+                // The database transaction has already rolled back at this point.
+                ImportUiState.Failed("The file couldn't be imported. It may be damaged.")
             } finally {
                 password?.fill('\u0000')
             }

@@ -41,6 +41,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.dosetrack.data.settings.AppSettings
 import com.dosetrack.di.appContainer
 import com.dosetrack.export.BackupCrypto
 import com.dosetrack.export.ImportResult
@@ -108,7 +109,11 @@ fun SettingsScreen(
         Text("Display")
         OutlinedTextField(
             value = settings.siteHistoryCount.toString(),
-            onValueChange = { value -> value.toIntOrNull()?.let { viewModel.updateSiteHistoryCount(it) } },
+            onValueChange = { value ->
+                value.toIntOrNull()
+                    ?.takeIf { it in AppSettings.SITE_HISTORY_RANGE }
+                    ?.let { viewModel.updateSiteHistoryCount(it) }
+            },
             label = { Text("Previous sites to show") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),

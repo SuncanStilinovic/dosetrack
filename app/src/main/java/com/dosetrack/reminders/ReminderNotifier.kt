@@ -1,6 +1,7 @@
 package com.dosetrack.reminders
 
 import android.Manifest
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -36,6 +37,13 @@ object ReminderNotifier {
                 android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
             )
 
+        // Shown on a secure lock screen instead of the real content, so it doesn't reveal medical use.
+        val publicVersion = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_reminder)
+            .setContentTitle(context.getString(R.string.reminder_notification_public_title))
+            .setContentText(context.getString(R.string.reminder_notification_public_body))
+            .build()
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_reminder)
             .setContentTitle(context.getString(R.string.reminder_notification_title))
@@ -43,6 +51,8 @@ object ReminderNotifier {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(publicVersion)
             .build()
 
         NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
@@ -53,7 +63,7 @@ object ReminderNotifier {
             CHANNEL_ID,
             context.getString(R.string.reminder_channel_name),
             NotificationManager.IMPORTANCE_HIGH,
-        )
+        ).apply { lockscreenVisibility = Notification.VISIBILITY_PRIVATE }
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(channel)
     }

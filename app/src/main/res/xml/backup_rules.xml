@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 11 and below: only back up when the transfer is device-to-device (no cloud). -->
+<!-- Android 11 (minSdk 30): only back up when the transfer is device-to-device (no cloud).
+     requireFlags is honoured from API 28, so it's safe for every supported version. -->
 <full-backup-content>
     <include domain="database" path="." requireFlags="deviceToDeviceTransfer" />
     <include domain="file" path="datastore/" requireFlags="deviceToDeviceTransfer" />

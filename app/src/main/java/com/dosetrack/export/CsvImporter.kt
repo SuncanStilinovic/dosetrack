@@ -163,7 +163,7 @@ object CsvImporter {
         val defaults = AppSettings()
         val reminderDefaults = defaults.reminderConfig
         return AppSettings(
-            siteHistoryCount = values[SettingKeys.SITE_HISTORY_COUNT]?.toIntOrNull()?.takeIf { it >= 0 }
+            siteHistoryCount = values[SettingKeys.SITE_HISTORY_COUNT]?.toIntOrNull()?.takeIf { it in AppSettings.SITE_HISTORY_RANGE }
                 ?: defaults.siteHistoryCount,
             showInjectionGuide = values[SettingKeys.SHOW_INJECTION_GUIDE]?.toBooleanStrictOrNull()
                 ?: defaults.showInjectionGuide,
@@ -176,7 +176,7 @@ object CsvImporter {
                     ?: reminderDefaults.days,
                 timeOfDayMinutes = values[SettingKeys.REMINDER_TIME_MINUTES]?.toIntOrNull()?.takeIf { it in 0 until 24 * 60 }
                     ?: reminderDefaults.timeOfDayMinutes,
-                intervalValue = values[SettingKeys.REMINDER_INTERVAL_VALUE]?.toIntOrNull()?.takeIf { it >= 1 }
+                intervalValue = values[SettingKeys.REMINDER_INTERVAL_VALUE]?.toIntOrNull()?.takeIf { it in ReminderConfig.INTERVAL_RANGE }
                     ?: reminderDefaults.intervalValue,
                 intervalUnit = values[SettingKeys.REMINDER_INTERVAL_UNIT]?.let { enumOrNull<IntervalUnit>(it) }
                     ?: reminderDefaults.intervalUnit,
@@ -211,6 +211,8 @@ object CsvImporter {
                 .atTime(LocalTime.parse(r[1].trim(), timeFormatter))
                 .atZone(zone)
                 .toInstant()
+                .inSaneRange()
+                ?: return null
         } catch (e: DateTimeParseException) {
             return null
         }
@@ -274,8 +276,17 @@ object CsvImporter {
 
     private fun String.isYes() = trim().equals("yes", ignoreCase = true)
 
+    /**
+     * Only dates a real backup can contain are accepted. Without this bound a crafted file could
+     * carry e.g. year -1000000000, which overflows epoch millis (crash) or breaks reminder maths.
+     */
+    private val EARLIEST = Instant.parse("1970-01-01T00:00:00Z")
+    private val LATEST = Instant.parse("2100-01-01T00:00:00Z")
+
+    private fun Instant.inSaneRange(): Instant? = takeIf { !it.isBefore(EARLIEST) && it.isBefore(LATEST) }
+
     private fun instantOrNull(text: String): Instant? = try {
-        Instant.parse(text.trim())
+        Instant.parse(text.trim()).inSaneRange()
     } catch (e: DateTimeParseException) {
         null
     }
