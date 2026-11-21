@@ -7,18 +7,15 @@ import java.io.File
 
 object ShareIntentFactory {
 
-    fun createShareIntent(context: Context, csvContent: String): Intent {
-        val exportsDir = File(context.cacheDir, "exports").apply { mkdirs() }
-        val file = File(exportsDir, "dosetrack_export_${System.currentTimeMillis()}.csv")
-        file.writeText(csvContent)
-
+    fun createShareIntent(context: Context, file: File): Intent {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/csv"
+            type = BackupCrypto.MIME_TYPE
             putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_SUBJECT, file.name)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        return Intent.createChooser(sendIntent, "Share injection history")
+        return Intent.createChooser(sendIntent, "Save or share DoseTrack backup")
     }
 }

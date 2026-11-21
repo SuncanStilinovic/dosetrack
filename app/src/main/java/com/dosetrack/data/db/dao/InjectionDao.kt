@@ -25,6 +25,9 @@ interface InjectionDao {
     @Query("SELECT * FROM injections WHERE id = :id")
     suspend fun getById(id: Long): InjectionEntity?
 
+    @Query("SELECT * FROM injections WHERE timestamp >= :fromMillis AND timestamp < :toMillis")
+    suspend fun getInRange(fromMillis: Long, toMillis: Long): List<InjectionEntity>
+
     @Transaction
     @Query("SELECT * FROM injections ORDER BY timestamp DESC")
     fun observeAllWithMedication(): Flow<List<InjectionWithMedicationEntity>>

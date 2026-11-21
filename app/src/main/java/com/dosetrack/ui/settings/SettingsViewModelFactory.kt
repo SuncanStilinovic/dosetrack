@@ -10,6 +10,7 @@ class SettingsViewModelFactory(private val container: AppContainer) : ViewModelP
         SettingsViewModel(
             container.settingsRepository,
             container.alarmScheduler,
-            container.injectionRepository,
+            container.historyImporter,
+            container.backupExporter,
         ) as T
 }

@@ -5,30 +5,28 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import com.dosetrack.R
 import com.dosetrack.data.model.SitePoint
 
-/** Fixed, bundled anatomical injection-site guide points; not user data. */
+/** Fixed, bundled anatomical injection-site guide points (one per grid centre); not user data. */
 object InjectionGuidePoints {
-    val points = listOf(
-        SitePoint(0.4f, 0.367f), // left of belly button
-        SitePoint(0.6f, 0.367f), // right of belly button
-        SitePoint(0.25f, 0.283f), // left upper arm
-        SitePoint(0.75f, 0.283f), // right upper arm
-        SitePoint(0.367f, 0.667f), // left outer thigh
-        SitePoint(0.633f, 0.667f), // right outer thigh
-    )
+    val points: List<SitePoint> = InjectionSiteGrids.grids.map { it.center }
 }
 
 @Composable
@@ -39,6 +37,7 @@ fun BodyDiagram(
     showGuide: Boolean = false,
     guidePoints: List<SitePoint> = InjectionGuidePoints.points,
     isInteractive: Boolean = true,
+    showSideLabels: Boolean = true,
     onSiteSelected: (SitePoint) -> Unit = {},
 ) {
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
@@ -55,7 +54,7 @@ fun BodyDiagram(
                             if (boxSize.width > 0 && boxSize.height > 0) {
                                 val x = (offset.x / boxSize.width).coerceIn(0f, 1f)
                                 val y = (offset.y / boxSize.height).coerceIn(0f, 1f)
-                                onSiteSelected(SitePoint(x, y))
+                                onSiteSelected(InjectionSiteGrids.snap(SitePoint(x, y)))
                             }
                         }
                     }
@@ -77,5 +76,18 @@ fun BodyDiagram(
             showGuide = showGuide,
             modifier = Modifier.fillMaxWidth().aspectRatio(0.5f),
         )
+        if (showSideLabels) {
+            // Front view: the patient's right side is on the viewer's left.
+            Text(
+                text = "R",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.align(Alignment.TopStart).padding(start = 24.dp, top = 8.dp),
+            )
+            Text(
+                text = "L",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.align(Alignment.TopEnd).padding(end = 24.dp, top = 8.dp),
+            )
+        }
     }
 }

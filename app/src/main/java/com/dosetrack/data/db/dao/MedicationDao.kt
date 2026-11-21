@@ -24,6 +24,9 @@ interface MedicationDao {
     @Query("SELECT * FROM medications ORDER BY name COLLATE NOCASE")
     fun observeAll(): Flow<List<MedicationEntity>>
 
+    @Query("SELECT * FROM medications")
+    suspend fun getAll(): List<MedicationEntity>
+
     @Query("SELECT * FROM medications WHERE id = :id")
     suspend fun getById(id: Long): MedicationEntity?
 }

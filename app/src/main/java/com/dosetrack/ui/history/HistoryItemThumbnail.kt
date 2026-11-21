@@ -26,6 +26,7 @@ fun HistoryItemThumbnail(
         BodyDiagram(
             currentSite = entry.injection.site,
             isInteractive = false,
+            showSideLabels = false,
             modifier = modifier.width(56.dp),
         )
     }
