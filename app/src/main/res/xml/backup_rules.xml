@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and below: only back up when the transfer is device-to-device (no cloud). -->
+<full-backup-content>
+    <include domain="database" path="." requireFlags="deviceToDeviceTransfer" />
+    <include domain="file" path="datastore/" requireFlags="deviceToDeviceTransfer" />
+</full-backup-content>
