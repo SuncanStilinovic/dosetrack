@@ -47,7 +47,7 @@ class HistoryImporter(
         parsed.settings?.let { settings ->
             settingsRepository.updateSiteHistoryCount(settings.siteHistoryCount)
             settingsRepository.updateShowInjectionGuide(settings.showInjectionGuide)
-            val reminder = settings.reminderConfig.copy(nextFireAt = null)
+            val reminder = settings.reminderConfig
             settingsRepository.updateReminderConfig(reminder)
             alarmScheduler.scheduleNext(reminder)
         }

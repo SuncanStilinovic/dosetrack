@@ -13,7 +13,7 @@ import com.dosetrack.reminders.AndroidAlarmScheduler
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
 
-    override val database: DoseTrackDatabase by lazy {
+    private val database: DoseTrackDatabase by lazy {
         Room.databaseBuilder(context, DoseTrackDatabase::class.java, DoseTrackDatabase.DATABASE_NAME).build()
     }
 
@@ -30,7 +30,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val alarmScheduler: AlarmScheduler by lazy {
-        AndroidAlarmScheduler(context, settingsRepository)
+        AndroidAlarmScheduler(context)
     }
 
     override val historyImporter: HistoryImporter by lazy {

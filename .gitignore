@@ -1,12 +1,22 @@
-*.iml
+# Gradle / build output
 .gradle/
-/local.properties
-/.idea/
-.DS_Store
-/build/
-/captures/
+build/
+.kotlin/
 .externalNativeBuild/
 .cxx/
+/captures/
+
+# Local machine config (SDK path)
 local.properties
-app/build/
+
+# IDE
+/.idea/
+*.iml
+.DS_Store
+
+# JVM crash logs
+hs_err_pid*
+replay_pid*
+
+# Claude Code local settings
 .claude/

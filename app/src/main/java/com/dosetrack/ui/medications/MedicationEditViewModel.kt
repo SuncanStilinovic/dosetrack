@@ -15,8 +15,6 @@ data class MedicationEditUiState(
     val name: String = "",
     val dosageAmount: String = "",
     val dosageUnit: DosageUnit = DosageUnit.MG,
-    val isLoading: Boolean = false,
-    val isSaved: Boolean = false,
 ) {
     val isValid: Boolean
         get() = name.isNotBlank() && parsedAmount != null
@@ -34,7 +32,7 @@ class MedicationEditViewModel(
     private val medicationId: Long?,
 ) : ViewModel() {
 
-    var uiState by mutableStateOf(MedicationEditUiState(isLoading = medicationId != null))
+    var uiState by mutableStateOf(MedicationEditUiState())
         private set
 
     init {
@@ -45,7 +43,6 @@ class MedicationEditViewModel(
                         name = medication.name,
                         dosageAmount = formatAmount(medication.dosageAmount),
                         dosageUnit = medication.dosageUnit,
-                        isLoading = false,
                     )
                 }
             }

@@ -10,7 +10,6 @@ data class ReminderConfig(
     val intervalValue: Int = 1,
     val intervalUnit: IntervalUnit = IntervalUnit.DAYS,
     val startAt: Instant = Instant.now(),
-    val nextFireAt: Instant? = null,
 ) {
     companion object {
         /** Accepted "every N <unit>" values; anything else would make no sense or overflow date maths. */

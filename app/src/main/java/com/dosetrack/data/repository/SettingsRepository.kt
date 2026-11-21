@@ -31,7 +31,6 @@ class SettingsRepository(private val context: Context) {
         val REMINDER_INTERVAL_VALUE = intPreferencesKey("reminder_interval_value")
         val REMINDER_INTERVAL_UNIT = stringPreferencesKey("reminder_interval_unit")
         val REMINDER_START_AT = longPreferencesKey("reminder_start_at")
-        val REMINDER_NEXT_FIRE_AT = longPreferencesKey("reminder_next_fire_at")
     }
 
     /** Stable fallback anchor so an unsaved interval start doesn't drift on every emission. */
@@ -55,7 +54,6 @@ class SettingsRepository(private val context: Context) {
                     ?: defaults.reminderConfig.intervalUnit,
                 startAt = prefs[Keys.REMINDER_START_AT]?.let { Instant.ofEpochMilli(it) }
                     ?: defaultStartAt,
-                nextFireAt = prefs[Keys.REMINDER_NEXT_FIRE_AT]?.let { Instant.ofEpochMilli(it) },
             ),
         )
     }
@@ -76,21 +74,6 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.REMINDER_INTERVAL_VALUE] = config.intervalValue
             prefs[Keys.REMINDER_INTERVAL_UNIT] = config.intervalUnit.name
             prefs[Keys.REMINDER_START_AT] = config.startAt.toEpochMilli()
-            if (config.nextFireAt != null) {
-                prefs[Keys.REMINDER_NEXT_FIRE_AT] = config.nextFireAt.toEpochMilli()
-            } else {
-                prefs.remove(Keys.REMINDER_NEXT_FIRE_AT)
-            }
-        }
-    }
-
-    suspend fun updateNextFireAt(nextFireAt: Instant?) {
-        context.dataStore.edit { prefs ->
-            if (nextFireAt != null) {
-                prefs[Keys.REMINDER_NEXT_FIRE_AT] = nextFireAt.toEpochMilli()
-            } else {
-                prefs.remove(Keys.REMINDER_NEXT_FIRE_AT)
-            }
         }
     }
 }
