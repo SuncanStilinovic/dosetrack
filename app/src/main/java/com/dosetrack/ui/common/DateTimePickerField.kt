@@ -2,8 +2,6 @@ package com.dosetrack.ui.common
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -29,6 +27,8 @@ import com.dosetrack.util.toDisplayString
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
+import androidx.compose.ui.res.painterResource
+import com.dosetrack.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +50,7 @@ fun DateTimePickerField(
             onValueChange = {},
             readOnly = true,
             label = { Text("Date & time") },
-            trailingIcon = { Icon(Icons.Filled.Schedule, contentDescription = null) },
+            trailingIcon = { Icon(painterResource(R.drawable.ic_schedule), contentDescription = null) },
             modifier = Modifier.fillMaxWidth(),
         )
         Surface(

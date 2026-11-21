@@ -9,9 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -32,6 +29,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dosetrack.data.model.Medication
 import com.dosetrack.di.appContainer
 import com.dosetrack.ui.common.ConfirmDeleteDialog
+import androidx.compose.ui.res.painterResource
+import com.dosetrack.R
 
 @Composable
 fun MedicationListScreen(
@@ -48,7 +47,7 @@ fun MedicationListScreen(
         modifier = modifier,
         floatingActionButton = {
             FloatingActionButton(onClick = onAddMedication) {
-                Icon(Icons.Filled.Add, contentDescription = "Add medication")
+                Icon(painterResource(R.drawable.ic_add), contentDescription = "Add medication")
             }
         },
     ) { padding ->
@@ -116,7 +115,7 @@ private fun MedicationRow(
                 Text(medication.dosageLabel)
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, contentDescription = "Delete ${medication.name}")
+                Icon(painterResource(R.drawable.ic_delete), contentDescription = "Delete ${medication.name}")
             }
         }
     }

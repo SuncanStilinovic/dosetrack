@@ -5,37 +5,37 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.TextObfuscationMode
+import androidx.compose.foundation.text.input.clearText
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedSecureTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.dosetrack.R
 import com.dosetrack.export.PasswordPolicy
 
 /**
  * Asks for the backup password. With [isNewPassword] it asks twice and enforces [PasswordPolicy]
  * (export); otherwise it asks once (import). The password is handed over as a CharArray, which the
- * receiver clears after use. State uses plain `remember`, never `rememberSaveable`, so the password
- * is not written into the saved instance state.
+ * receiver clears after use.
+ *
+ * Uses the secure text fields (no copy/cut of the password, password keyboard, obscured text).
+ * State is created with plain `remember`, deliberately not `rememberTextFieldState()`, which would
+ * save the password into the saved instance state; the fields are cleared when the dialog closes.
  */
 @Composable
 fun BackupPasswordDialog(
@@ -44,22 +44,29 @@ fun BackupPasswordDialog(
     onDismiss: () -> Unit,
     errorMessage: String? = null,
 ) {
-    var password by remember { mutableStateOf("") }
-    var confirmation by remember { mutableStateOf("") }
+    val password = remember { TextFieldState() }
+    val confirmation = remember { TextFieldState() }
     var visible by remember { mutableStateOf(false) }
 
-    val mismatch = isNewPassword && confirmation.isNotEmpty() && confirmation != password
-    val canConfirm = if (isNewPassword) {
-        PasswordPolicy.isAcceptable(password) && confirmation == password
-    } else {
-        password.isNotEmpty()
+    DisposableEffect(Unit) {
+        onDispose {
+            password.clearText()
+            confirmation.clearText()
+        }
     }
 
-    val transformation = if (visible) VisualTransformation.None else PasswordVisualTransformation()
+    val mismatch = isNewPassword && confirmation.text.isNotEmpty() && !confirmation.text.contentEquals(password.text)
+    val canConfirm = if (isNewPassword) {
+        PasswordPolicy.isAcceptable(password.text) && confirmation.text.contentEquals(password.text)
+    } else {
+        password.text.isNotEmpty()
+    }
+
+    val obfuscation = if (visible) TextObfuscationMode.Visible else TextObfuscationMode.RevealLastTyped
     val toggle = @Composable {
         IconButton(onClick = { visible = !visible }) {
             Icon(
-                if (visible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                painterResource(if (visible) R.drawable.ic_visibility_off else R.drawable.ic_visibility),
                 contentDescription = if (visible) "Hide password" else "Show password",
             )
         }
@@ -79,27 +86,21 @@ fun BackupPasswordDialog(
                     },
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
+                OutlinedSecureTextField(
+                    state = password,
                     label = { Text("Password") },
-                    singleLine = true,
-                    visualTransformation = transformation,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    textObfuscationMode = obfuscation,
                     trailingIcon = toggle,
                     isError = errorMessage != null,
                     supportingText = errorMessage?.let { message -> { Text(message) } },
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                 )
                 if (isNewPassword) {
-                    PasswordRuleChecklist(password)
-                    OutlinedTextField(
-                        value = confirmation,
-                        onValueChange = { confirmation = it },
+                    PasswordRuleChecklist(password.text)
+                    OutlinedSecureTextField(
+                        state = confirmation,
                         label = { Text("Repeat password") },
-                        singleLine = true,
-                        visualTransformation = transformation,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        textObfuscationMode = obfuscation,
                         isError = mismatch,
                         supportingText = if (mismatch) ({ Text("Passwords don't match") }) else null,
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
@@ -108,7 +109,17 @@ fun BackupPasswordDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(password.toCharArray()) }, enabled = canConfirm) {
+            TextButton(
+                onClick = {
+                    // Copy straight into a CharArray (no intermediate String) for the receiver to wipe.
+                    val text = password.text
+                    val chars = CharArray(text.length) { text[it] }
+                    password.clearText()
+                    confirmation.clearText()
+                    onConfirm(chars)
+                },
+                enabled = canConfirm,
+            ) {
                 Text(if (isNewPassword) "Continue" else "Import")
             }
         },
@@ -118,13 +129,13 @@ fun BackupPasswordDialog(
 
 /** Live checklist so the user sees which rule is still missing instead of a disabled button. */
 @Composable
-private fun PasswordRuleChecklist(password: String) {
+private fun PasswordRuleChecklist(password: CharSequence) {
     Column(modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) {
         PasswordPolicy.rules.forEach { rule ->
             val met = rule.isMet(password)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = if (met) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
+                    painter = painterResource(if (met) R.drawable.ic_check_circle else R.drawable.ic_radio_button_unchecked),
                     contentDescription = if (met) "Met" else "Not met",
                     tint = if (met) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp),

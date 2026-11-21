@@ -320,7 +320,7 @@ object CsvImporter {
 /** Minimal RFC 4180 reader: quoted fields, doubled quotes, embedded commas/newlines, CRLF, UTF-8 BOM. */
 object CsvParser {
     fun parse(text: String): List<List<String>> {
-        val source = text.removePrefix("﻿")
+        val source = text.removePrefix("\uFEFF")
         val rows = mutableListOf<List<String>>()
         var row = mutableListOf<String>()
         val field = StringBuilder()

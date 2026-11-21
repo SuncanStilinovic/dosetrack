@@ -5,7 +5,7 @@ object PasswordPolicy {
 
     const val MIN_LENGTH = 12
 
-    data class Rule(val description: String, val isMet: (String) -> Boolean)
+    data class Rule(val description: String, val isMet: (CharSequence) -> Boolean)
 
     val rules: List<Rule> = listOf(
         Rule("At least $MIN_LENGTH characters") { it.length >= MIN_LENGTH },
@@ -14,7 +14,7 @@ object PasswordPolicy {
         Rule("At least one special character (e.g. ! ? # @ -)") { pw -> pw.any(::isSpecial) },
     )
 
-    fun isAcceptable(password: String): Boolean = rules.all { it.isMet(password) }
+    fun isAcceptable(password: CharSequence): Boolean = rules.all { it.isMet(password) }
 
     /** Anything visible that isn't a letter or digit: punctuation, symbols, emoji. */
     private fun isSpecial(c: Char) = !c.isLetterOrDigit() && !c.isWhitespace()

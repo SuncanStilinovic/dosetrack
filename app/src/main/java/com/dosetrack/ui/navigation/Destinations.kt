@@ -1,11 +1,7 @@
 package com.dosetrack.ui.navigation
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Medication
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.annotation.DrawableRes
+import com.dosetrack.R
 
 sealed class Destination(val route: String) {
     data object Home : Destination("home")
@@ -32,12 +28,12 @@ sealed class Destination(val route: String) {
 data class TopLevelTab(
     val destination: Destination,
     val label: String,
-    val icon: ImageVector,
+    @DrawableRes val iconRes: Int,
 )
 
 val topLevelTabs = listOf(
-    TopLevelTab(Destination.Home, "Home", Icons.Filled.Home),
-    TopLevelTab(Destination.History, "History", Icons.Filled.History),
-    TopLevelTab(Destination.Medications, "Medications", Icons.Filled.Medication),
-    TopLevelTab(Destination.Settings, "Settings", Icons.Filled.Settings),
+    TopLevelTab(Destination.Home, "Home", R.drawable.ic_home),
+    TopLevelTab(Destination.History, "History", R.drawable.ic_history),
+    TopLevelTab(Destination.Medications, "Medications", R.drawable.ic_medication),
+    TopLevelTab(Destination.Settings, "Settings", R.drawable.ic_settings),
 )
