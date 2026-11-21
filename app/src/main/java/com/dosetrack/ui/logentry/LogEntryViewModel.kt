@@ -11,6 +11,7 @@ import com.dosetrack.data.model.SitePoint
 import com.dosetrack.data.repository.InjectionRepository
 import com.dosetrack.data.repository.MedicationRepository
 import com.dosetrack.data.repository.SettingsRepository
+import com.dosetrack.ui.common.InjectionSiteGrids
 import kotlinx.coroutines.launch
 import java.time.Instant
 
@@ -47,6 +48,7 @@ class LogEntryViewModel(
                         isNoteOnly = injection.isNoteOnly,
                         timestamp = injection.timestamp,
                         site = injection.site,
+                        originalSite = injection.site,
                         medicationId = injection.medicationId,
                         hadReaction = injection.hadReaction,
                         reactionNote = injection.reactionNote ?: "",
@@ -62,7 +64,8 @@ class LogEntryViewModel(
     }
 
     fun updateSite(site: SitePoint) {
-        uiState = uiState.copy(site = site)
+        val snapped = InjectionSiteGrids.snapToCell(site) ?: return
+        uiState = uiState.copy(site = snapped)
     }
 
     fun updateMedicationId(medicationId: Long?) {

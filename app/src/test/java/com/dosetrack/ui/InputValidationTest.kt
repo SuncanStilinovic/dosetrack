@@ -1,6 +1,7 @@
 package com.dosetrack.ui
 
 import com.dosetrack.data.model.SitePoint
+import com.dosetrack.ui.common.InjectionSiteGrids
 import com.dosetrack.ui.logentry.LogEntryUiState
 import com.dosetrack.ui.medications.MedicationEditUiState
 import org.junit.Assert.assertEquals
@@ -13,13 +14,27 @@ import java.time.Instant
 
 class InputValidationTest {
 
-    private val site = SitePoint(0.5f, 0.5f)
+    /** Centre of the first belly cell. */
+    private val site = InjectionSiteGrids.grids.first().cells().first().center
+    private val offGrid = SitePoint(0.5f, 0.1f)
 
     @Test
     fun `injection needs a site, a note does not`() {
         assertFalse(LogEntryUiState(isNoteOnly = false, site = null).isValid)
         assertTrue(LogEntryUiState(isNoteOnly = false, site = site).isValid)
         assertTrue(LogEntryUiState(isNoteOnly = true, site = null).isValid)
+    }
+
+    @Test
+    fun `a new injection must be on a grid cell`() {
+        assertFalse(LogEntryUiState(site = offGrid).isValid)
+    }
+
+    @Test
+    fun `an older entry keeps its off-grid site when edited, but cannot move to another off-grid spot`() {
+        assertTrue(LogEntryUiState(site = offGrid, originalSite = offGrid, isEditing = true).isValid)
+        assertFalse(LogEntryUiState(site = SitePoint(0.5f, 0.2f), originalSite = offGrid, isEditing = true).isValid)
+        assertTrue(LogEntryUiState(site = site, originalSite = offGrid, isEditing = true).isValid)
     }
 
     @Test

@@ -54,7 +54,8 @@ fun BodyDiagram(
                             if (boxSize.width > 0 && boxSize.height > 0) {
                                 val x = (offset.x / boxSize.width).coerceIn(0f, 1f)
                                 val y = (offset.y / boxSize.height).coerceIn(0f, 1f)
-                                onSiteSelected(InjectionSiteGrids.snap(SitePoint(x, y)))
+                                // Taps outside the grids are ignored: sites can only be chosen from the grid cells.
+                                InjectionSiteGrids.snapToCell(SitePoint(x, y))?.let(onSiteSelected)
                             }
                         }
                     }

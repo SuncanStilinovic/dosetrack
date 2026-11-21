@@ -2,6 +2,7 @@ package com.dosetrack.ui.common
 
 import com.dosetrack.data.model.SitePoint
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -42,7 +43,7 @@ class InjectionSiteGridsTest {
     @Test
     fun `every cell centre snaps to itself`() {
         InjectionSiteGrids.grids.flatMap { it.cells() }.forEach { cell ->
-            val snapped = InjectionSiteGrids.snap(cell.center)
+            val snapped = InjectionSiteGrids.snapToCell(cell.center)!!
             assertEquals(cell.center.x, snapped.x, eps)
             assertEquals(cell.center.y, snapped.y, eps)
         }
@@ -52,14 +53,21 @@ class InjectionSiteGridsTest {
     fun `a tap anywhere inside a cell snaps to that cell's centre`() {
         val cell = InjectionSiteGrids.grids.first().cells().first()
         val nearCorner = SitePoint(cell.left + 0.001f, cell.top + 0.001f)
-        assertEquals(cell.center, InjectionSiteGrids.snap(nearCorner))
+        assertEquals(cell.center, InjectionSiteGrids.snapToCell(nearCorner))
     }
 
     @Test
-    fun `taps outside every grid are kept as they are`() {
-        val head = SitePoint(0.5f, 0.1f)
-        assertNull(InjectionSiteGrids.cellAt(head))
-        assertEquals(head, InjectionSiteGrids.snap(head))
+    fun `taps outside every grid select nothing`() {
+        val offGrid = listOf(
+            SitePoint(0.5f, 0.1f), // head
+            SitePoint(0.5f, 0.41f), // navel, between the belly grids
+            SitePoint(0.5f, 0.9f), // between the feet
+            SitePoint(0.3f, 0.45f), // forearm
+        )
+        offGrid.forEach { point ->
+            assertNull("$point", InjectionSiteGrids.snapToCell(point))
+            assertFalse("$point", InjectionSiteGrids.isOnGrid(point))
+        }
     }
 
     @Test

@@ -64,6 +64,8 @@ object InjectionSiteGrids {
     /** The grid cell containing [point], if any. */
     fun cellAt(point: SitePoint): GridCell? = grids.firstNotNullOfOrNull { it.cellAt(point) }
 
-    /** Snaps a tap inside a grid to its cell centre; taps elsewhere stay where they are. */
-    fun snap(point: SitePoint): SitePoint = cellAt(point)?.center ?: point
+    /** Injections can only be placed in a grid cell: a tap inside one snaps to its centre, anywhere else gives null. */
+    fun snapToCell(point: SitePoint): SitePoint? = cellAt(point)?.center
+
+    fun isOnGrid(point: SitePoint): Boolean = cellAt(point) != null
 }
