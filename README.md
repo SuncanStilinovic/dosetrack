@@ -23,6 +23,8 @@ All data stays on the device. The app has no internet permission, no account, no
 | Backup files | AES-256-GCM, with the key derived via PBKDF2-HMAC-SHA256 from a user password. The header is bound to the ciphertext as associated data (`export/BackupCrypto.kt`) |
 | Notifications | `VISIBILITY_PRIVATE` with a generic public version for the lock screen |
 
+See the full [privacy policy](PRIVACY.md).
+
 ## Tech stack
 
 - Kotlin, Jetpack Compose (Material 3), Navigation Compose
