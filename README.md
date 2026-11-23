@@ -98,6 +98,14 @@ The Room schema is exported to `app/schemas/` for migration tracking.
 
 Unit tests in `app/src/test` cover data validation, backup encryption and format, CSV parsing, backup restore, password policy, reminder time calculation, input validation and injection-site grids.
 
+## License
+
+DoseTrack is free software, licensed under the [GNU General Public License v3.0](LICENSE). You can use, study, modify and share the code. If you distribute a modified version, it must also be released under GPL-3.0, with its source code.
+
+**Name and logo:** under the [additional terms in NOTICE](NOTICE), a modified version must use its own name, its own icon and a different application ID. It must not present itself as the official DoseTrack. Saying "based on DoseTrack" is fine.
+
+The official DoseTrack is, and will stay, free, ad-free and without any data collection.
+
 ## Disclaimer
 
 DoseTrack is a personal logging tool, not a medical device. It does not give medical advice or recommend doses. Always follow the instructions of your doctor or pharmacist.
