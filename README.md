@@ -4,6 +4,18 @@ A privacy-first Android app for logging self-administered injections: when each 
 
 All data stays on the device. The app has no internet permission, no account, no analytics and no ads.
 
+## Screenshots
+
+<p>
+  <a href="screenshots/1_log_injection.png"><img src="screenshots/1_log_injection.png" width="160" alt="Log an injection on the body diagram"></a>
+  <a href="screenshots/2_history.png"><img src="screenshots/2_history.png" width="160" alt="Injection history"></a>
+  <a href="screenshots/3_reminders.png"><img src="screenshots/3_reminders.png" width="160" alt="Reminder settings"></a>
+  <a href="screenshots/4_medications.png"><img src="screenshots/4_medications.png" width="160" alt="Medication list"></a>
+  <a href="screenshots/5_log_details.png"><img src="screenshots/5_log_details.png" width="160" alt="Injection details form"></a>
+</p>
+
+Screenshots use fictional sample data.
+
 ## Features
 
 - **Injection log.** Tap the site on a body diagram, pick a medication and dose, and record reactions and notes. Note-only entries are supported for days without an injection.
