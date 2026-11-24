@@ -47,6 +47,7 @@ class BackupRestorer(
                         name = m.name,
                         dosageAmount = m.dosageAmount,
                         dosageUnit = m.dosageUnit.name,
+                        route = m.route.name,
                         isDeleted = m.isDeleted,
                         createdAt = m.createdAt.toEpochMilli(),
                     )

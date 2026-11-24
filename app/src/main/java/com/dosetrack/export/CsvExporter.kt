@@ -11,9 +11,9 @@ import java.time.format.DateTimeFormatter
  * spreadsheet but can be restored losslessly on another device by [CsvImporter]:
  *
  * ```
- * DoseTrack backup,2
+ * DoseTrack backup,3
  * Medications
- * Id,Name,DosageAmount,DosageUnit,Deleted,CreatedAt
+ * Id,Name,DosageAmount,DosageUnit,Deleted,CreatedAt,Route
  * ...
  * Injections
  * Date,Time,Medication,Dosage,Notes,Reaction,ReactionNote,SiteX,SiteY,Type,MedicationId,Timestamp,CreatedAt,UpdatedAt
@@ -29,7 +29,8 @@ import java.time.format.DateTimeFormatter
 object CsvExporter {
 
     const val MAGIC = "DoseTrack backup"
-    const val FORMAT_VERSION = 2
+    /** 3 added the medication Route column; 2 is still accepted on import. */
+    const val FORMAT_VERSION = 3
 
     const val SECTION_MEDICATIONS = "Medications"
     const val SECTION_INJECTIONS = "Injections"
@@ -37,7 +38,9 @@ object CsvExporter {
 
     /** Header of the original history-only export (format 1); still accepted on import. */
     val LEGACY_HEADER = listOf("Date", "Time", "Medication", "Dosage", "Notes", "Reaction", "ReactionNote", "SiteX", "SiteY")
-    val MEDICATION_HEADER = listOf("Id", "Name", "DosageAmount", "DosageUnit", "Deleted", "CreatedAt")
+    /** Medications header of format 2, before medications had a route; still accepted on import. */
+    val MEDICATION_HEADER_V2 = listOf("Id", "Name", "DosageAmount", "DosageUnit", "Deleted", "CreatedAt")
+    val MEDICATION_HEADER = MEDICATION_HEADER_V2 + "Route"
     val INJECTION_HEADER = LEGACY_HEADER + listOf("Type", "MedicationId", "Timestamp", "CreatedAt", "UpdatedAt")
     val SETTINGS_HEADER = listOf("Key", "Value")
 
@@ -78,6 +81,7 @@ object CsvExporter {
                     m.dosageUnit.name,
                     yesNo(m.isDeleted),
                     m.createdAt.toString(),
+                    m.route.name,
                 ),
             )
         }

@@ -22,6 +22,11 @@ fun HistoryItemThumbnail(
         Box(modifier = modifier.size(56.dp), contentAlignment = Alignment.Center) {
             Icon(painterResource(R.drawable.ic_edit_note), contentDescription = "Note")
         }
+    } else if (entry.injection.site == null) {
+        // A dose of a medication that isn't injected: there is no site to show.
+        Box(modifier = modifier.size(56.dp), contentAlignment = Alignment.Center) {
+            Icon(painterResource(R.drawable.ic_medication), contentDescription = "Dose")
+        }
     } else {
         BodyDiagram(
             currentSite = entry.injection.site,

@@ -112,7 +112,7 @@ private fun MedicationRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(medication.name)
-                Text(medication.dosageLabel)
+                Text("${medication.dosageLabel} · ${medication.route.label}")
             }
             IconButton(onClick = onDelete) {
                 Icon(painterResource(R.drawable.ic_delete), contentDescription = "Delete ${medication.name}")

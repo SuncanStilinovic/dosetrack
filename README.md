@@ -20,7 +20,7 @@ Screenshots use fictional sample data.
 
 - **Injection log.** Tap the site on a body diagram, pick a medication and dose, and record reactions and notes. Note-only entries are supported for days without an injection.
 - **Site rotation.** A grid splits the body diagram into injection zones, and previous injection sites are highlighted on it (the count is configurable).
-- **Medications.** Save medications with a dose in mg, mL, mcg, IU or units.
+- **Medications.** Save medications with a dose in mg, mL, mcg, IU or units, and how each is taken (injection, oral, topical, inhaled or other). Doses of medications that aren't injected are logged without a body site.
 - **History.** Browse, edit and delete every entry.
 - **Reminders.** Remind on chosen days of the week, or every N hours, days, weeks or months. Reminders are re-armed after a reboot, time change or app update. Lock-screen notifications are discreet.
 - **Encrypted backups.** Export to a file or share it, then restore on any device.

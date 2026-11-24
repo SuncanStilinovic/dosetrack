@@ -34,7 +34,8 @@ interface InjectionDao {
 
     @Query(
         "SELECT siteX, siteY FROM injections " +
-            "WHERE isNoteOnly = 0 AND id != :excludeId ORDER BY timestamp DESC LIMIT :limit",
+            "WHERE isNoteOnly = 0 AND siteX IS NOT NULL AND siteY IS NOT NULL AND id != :excludeId " +
+            "ORDER BY timestamp DESC LIMIT :limit",
     )
     suspend fun getRecentSites(limit: Int, excludeId: Long = -1): List<SiteCoordinates>
 }

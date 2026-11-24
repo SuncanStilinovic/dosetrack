@@ -6,6 +6,7 @@ import com.dosetrack.data.db.entities.InjectionEntity
 import com.dosetrack.data.db.entities.InjectionWithMedicationEntity
 import com.dosetrack.data.db.entities.MedicationEntity
 import com.dosetrack.data.db.entities.SiteCoordinates
+import com.dosetrack.data.model.AdministrationRoute
 import com.dosetrack.data.model.DosageUnit
 import com.dosetrack.data.model.SitePoint
 import kotlinx.coroutines.flow.Flow
@@ -50,6 +51,19 @@ class BackupRestorerTest {
         assertEquals(setOf("Ozempic", "Unused"), medications.rows.map { it.name }.toSet())
         val ozempicId = medications.rows.single { it.name == "Ozempic" }.id
         injections.rows.forEach { assertEquals(ozempicId, it.medicationId) }
+    }
+
+    @Test
+    fun `medication route is restored, with site-less doses`() {
+        val tablet = med(1, "Tablet", 10.0, DosageUnit.MG).copy(route = AdministrationRoute.ORAL)
+        val dose = shot(site = null).copy(isNoteOnly = false)
+        val result = restore(listOf(tablet), listOf(dose))
+
+        assertEquals(1, result.imported)
+        assertEquals(AdministrationRoute.ORAL.name, medications.rows.single().route)
+        val row = injections.rows.single()
+        assertFalse(row.isNoteOnly)
+        assertNull(row.siteX)
     }
 
     @Test

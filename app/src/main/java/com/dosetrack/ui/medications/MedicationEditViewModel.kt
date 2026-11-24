@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dosetrack.data.DataRules
+import com.dosetrack.data.model.AdministrationRoute
 import com.dosetrack.data.model.DosageUnit
 import com.dosetrack.data.model.Medication
 import com.dosetrack.data.repository.MedicationRepository
@@ -15,6 +16,7 @@ data class MedicationEditUiState(
     val name: String = "",
     val dosageAmount: String = "",
     val dosageUnit: DosageUnit = DosageUnit.MG,
+    val route: AdministrationRoute = AdministrationRoute.INJECTION,
 ) {
     val isValid: Boolean
         get() = name.isNotBlank() && parsedAmount != null
@@ -43,6 +45,7 @@ class MedicationEditViewModel(
                         name = medication.name,
                         dosageAmount = formatAmount(medication.dosageAmount),
                         dosageUnit = medication.dosageUnit,
+                        route = medication.route,
                     )
                 }
             }
@@ -61,6 +64,10 @@ class MedicationEditViewModel(
         uiState = uiState.copy(dosageUnit = unit)
     }
 
+    fun updateRoute(route: AdministrationRoute) {
+        uiState = uiState.copy(route = route)
+    }
+
     fun save(onDone: () -> Unit) {
         val amount = uiState.parsedAmount ?: return
         if (uiState.name.isBlank()) return
@@ -71,6 +78,7 @@ class MedicationEditViewModel(
                     name = uiState.name.trim(),
                     dosageAmount = amount,
                     dosageUnit = uiState.dosageUnit,
+                    route = uiState.route,
                 ),
             )
             onDone()

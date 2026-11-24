@@ -20,8 +20,18 @@ data class LogEntryUiState(
     val medications: List<Medication> = emptyList(),
     val historicalSites: List<SitePoint> = emptyList(),
 ) {
+    val selectedMedication: Medication?
+        get() = medications.firstOrNull { it.id == medicationId }
+
+    /**
+     * Whether this entry is placed on the body diagram. Notes and doses of non-injected medications
+     * have no site; with no medication (or one no longer listed) it is treated as an injection.
+     */
+    val needsSite: Boolean
+        get() = !isNoteOnly && (selectedMedication?.route?.isInjected ?: true)
+
     val isValid: Boolean
-        get() = (isNoteOnly || hasValidSite) && DataRules.isValidRecordInstant(timestamp)
+        get() = (!needsSite || hasValidSite) && DataRules.isValidRecordInstant(timestamp)
 
     /** A grid cell, or an older entry's existing off-grid site left unchanged. */
     private val hasValidSite: Boolean

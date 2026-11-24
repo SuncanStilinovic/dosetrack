@@ -53,7 +53,8 @@ fun LogEntryScreen(
     val title = when {
         entryId != null -> "Edit Entry"
         uiState.isNoteOnly -> "Add Note"
-        else -> "Log Injection"
+        uiState.needsSite -> "Log Injection"
+        else -> "Log Dose"
     }
 
     Scaffold(
@@ -67,7 +68,17 @@ fun LogEntryScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
         ) {
+            // Medication comes first: it decides whether the body diagram below is needed.
             if (!uiState.isNoteOnly) {
+                MedicationDropdown(
+                    medications = uiState.medications,
+                    selectedId = uiState.medicationId,
+                    onSelect = viewModel::updateMedicationId,
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            if (uiState.needsSite) {
                 BodyDiagram(
                     currentSite = uiState.site,
                     historicalSites = uiState.historicalSites,
@@ -92,13 +103,6 @@ fun LogEntryScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             if (!uiState.isNoteOnly) {
-                MedicationDropdown(
-                    medications = uiState.medications,
-                    selectedId = uiState.medicationId,
-                    onSelect = viewModel::updateMedicationId,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
                 ReactionToggleSection(
                     hadReaction = uiState.hadReaction,
                     reactionNote = uiState.reactionNote,

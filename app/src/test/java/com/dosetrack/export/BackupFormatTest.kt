@@ -1,6 +1,7 @@
 package com.dosetrack.export
 
 import com.dosetrack.data.DataRules
+import com.dosetrack.data.model.AdministrationRoute
 import com.dosetrack.data.model.DosageUnit
 import com.dosetrack.data.model.Injection
 import com.dosetrack.data.model.InjectionWithMedication
@@ -33,7 +34,7 @@ class BackupFormatTest {
     @Test
     fun `full backup round-trips every field`() {
         val pen = Medication(7, "Ozempic, pen \"A\"", 0.5, DosageUnit.ML, false, t0)
-        val unused = Medication(9, "Unused", 10.0, DosageUnit.MG, false, t0)
+        val unused = Medication(9, "Unused", 10.0, DosageUnit.MG, false, t0, AdministrationRoute.ORAL)
         val deleted = Medication(11, "Old", 2.0, DosageUnit.IU, true, t0)
         val injection = Injection(
             id = 1, timestamp = t0, isNoteOnly = false, site = SitePoint(0.4366667f, 0.383f), medicationId = 7,
@@ -69,7 +70,7 @@ class BackupFormatTest {
         assertEquals(
             listOf(
                 BackupMedication(7, pen.name, 0.5, DosageUnit.ML, false, t0),
-                BackupMedication(9, "Unused", 10.0, DosageUnit.MG, false, t0),
+                BackupMedication(9, "Unused", 10.0, DosageUnit.MG, false, t0, AdministrationRoute.ORAL),
                 BackupMedication(11, "Old", 2.0, DosageUnit.IU, true, t0),
             ),
             parsed.medications,
@@ -169,10 +170,15 @@ class BackupFormatTest {
 
     // region Per-row validation (DataRules)
 
-    private fun backup(medicationRows: String, injectionRows: String, settingsRows: String = "") = """
-DoseTrack backup,2
+    private fun backup(
+        medicationRows: String,
+        injectionRows: String,
+        settingsRows: String = "",
+        version: Int = CsvExporter.FORMAT_VERSION,
+    ) = """
+DoseTrack backup,$version
 Medications
-${CsvExporter.MEDICATION_HEADER.joinToString(",")}
+${(if (version >= 3) CsvExporter.MEDICATION_HEADER else CsvExporter.MEDICATION_HEADER_V2).joinToString(",")}
 $medicationRows
 Injections
 ${CsvExporter.INJECTION_HEADER.joinToString(",")}
@@ -182,7 +188,8 @@ Key,Value
 $settingsRows
 """.trim()
 
-    private val goodMed = "1,Good,0.5,ML,No,2026-02-01T00:00:00Z"
+    private val goodMed = "1,Good,0.5,ML,No,2026-02-01T00:00:00Z,INJECTION"
+    private val oralMed = "2,Tablet,10,MG,No,2026-02-01T00:00:00Z,ORAL"
 
     private fun injectionRow(
         timestamp: String = "2026-03-01T09:00:00Z",
@@ -203,17 +210,48 @@ $settingsRows
     @Test
     fun `medications with impossible dosages or bad dates are skipped`() {
         val rows = listOf(
-            "2,NaN,NaN,MG,No,2026-02-01T00:00:00Z",
-            "3,Inf,Infinity,MG,No,2026-02-01T00:00:00Z",
-            "4,Zero,0,MG,No,2026-02-01T00:00:00Z",
-            "5,Neg,-1,MG,No,2026-02-01T00:00:00Z",
-            "6,Unit,1,LITRES,No,2026-02-01T00:00:00Z",
-            "7,Old,1,MG,No,2025-06-01T00:00:00Z",
-            "8,${"n".repeat(DataRules.MAX_NAME_LENGTH + 1)},1,MG,No,2026-02-01T00:00:00Z",
+            "2,NaN,NaN,MG,No,2026-02-01T00:00:00Z,INJECTION",
+            "3,Inf,Infinity,MG,No,2026-02-01T00:00:00Z,INJECTION",
+            "4,Zero,0,MG,No,2026-02-01T00:00:00Z,INJECTION",
+            "5,Neg,-1,MG,No,2026-02-01T00:00:00Z,INJECTION",
+            "6,Unit,1,LITRES,No,2026-02-01T00:00:00Z,INJECTION",
+            "7,Old,1,MG,No,2025-06-01T00:00:00Z,INJECTION",
+            "8,${"n".repeat(DataRules.MAX_NAME_LENGTH + 1)},1,MG,No,2026-02-01T00:00:00Z,INJECTION",
+            "9,Route,1,MG,No,2026-02-01T00:00:00Z,SNORTED",
+            "10,Short,1,MG,No,2026-02-01T00:00:00Z",
         ).joinToString("\n")
         val parsed = parse(backup("$goodMed\n$rows", ""))
         assertEquals(listOf("Good"), parsed.medications.map { it.name })
-        assertEquals(7, parsed.invalidRows)
+        assertEquals(9, parsed.invalidRows)
+    }
+
+    @Test
+    fun `format 2 backups import with every medication injected`() {
+        val parsed = parse(backup("1,Good,0.5,ML,No,2026-02-01T00:00:00Z", injectionRow(), version = 2))
+        assertEquals(0, parsed.invalidRows)
+        assertEquals(AdministrationRoute.INJECTION, parsed.medications.single().route)
+        assertEquals(1, parsed.injections.size)
+    }
+
+    @Test
+    fun `a dose needs a site only when its medication is injected`() {
+        val rows = listOf(
+            injectionRow(siteX = "", siteY = "", medicationId = "2"), // oral: no site needed
+            injectionRow(siteX = "", siteY = "", medicationId = "1"), // injected: site required
+            injectionRow(siteX = "", siteY = "", medicationId = ""), // no medication: site required
+        ).joinToString("\n")
+        val parsed = parse(backup("$goodMed\n$oralMed", rows))
+        assertEquals(1, parsed.injections.size)
+        assertEquals(2L, parsed.injections.single().backupMedicationId)
+        assertNull(parsed.injections.single().site)
+        assertEquals(2, parsed.invalidRows)
+    }
+
+    @Test
+    fun `short injection rows are skipped, not a crash`() {
+        val parsed = parse(backup(goodMed, "2026-03-01,10:00,Good"))
+        assertTrue(parsed.injections.isEmpty())
+        assertEquals(1, parsed.invalidRows)
     }
 
     @Test

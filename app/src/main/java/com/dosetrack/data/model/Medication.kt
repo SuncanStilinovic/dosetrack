@@ -9,6 +9,7 @@ data class Medication(
     val dosageUnit: DosageUnit,
     val isDeleted: Boolean = false,
     val createdAt: Instant = Instant.now(),
+    val route: AdministrationRoute = AdministrationRoute.INJECTION,
 ) {
     val dosageLabel: String
         get() {

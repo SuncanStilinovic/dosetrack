@@ -92,7 +92,7 @@ class LogEntryViewModel(
                 id = entryId ?: 0,
                 timestamp = uiState.timestamp,
                 isNoteOnly = uiState.isNoteOnly,
-                site = if (uiState.isNoteOnly) null else uiState.site,
+                site = if (uiState.needsSite) uiState.site else null,
                 medicationId = uiState.medicationId,
                 hadReaction = uiState.hadReaction,
                 reactionNote = uiState.reactionNote.takeIf { uiState.hadReaction && it.isNotBlank() },

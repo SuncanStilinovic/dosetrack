@@ -1,5 +1,8 @@
 package com.dosetrack.ui
 
+import com.dosetrack.data.model.AdministrationRoute
+import com.dosetrack.data.model.DosageUnit
+import com.dosetrack.data.model.Medication
 import com.dosetrack.data.model.SitePoint
 import com.dosetrack.ui.common.InjectionSiteGrids
 import com.dosetrack.ui.logentry.LogEntryUiState
@@ -23,6 +26,21 @@ class InputValidationTest {
         assertFalse(LogEntryUiState(isNoteOnly = false, site = null).isValid)
         assertTrue(LogEntryUiState(isNoteOnly = false, site = site).isValid)
         assertTrue(LogEntryUiState(isNoteOnly = true, site = null).isValid)
+    }
+
+    @Test
+    fun `a dose of a medication that isn't injected needs no site`() {
+        val pen = Medication(1, "Pen", 0.5, DosageUnit.ML)
+        val tablet = Medication(2, "Tablet", 10.0, DosageUnit.MG, route = AdministrationRoute.ORAL)
+        val meds = listOf(pen, tablet)
+
+        val oral = LogEntryUiState(medications = meds, medicationId = 2, site = null)
+        assertFalse(oral.needsSite)
+        assertTrue(oral.isValid)
+
+        assertFalse(LogEntryUiState(medications = meds, medicationId = 1, site = null).isValid)
+        assertFalse(LogEntryUiState(medications = meds, medicationId = null, site = null).isValid)
+        assertTrue(LogEntryUiState(medications = meds, medicationId = 1, site = site).isValid)
     }
 
     @Test

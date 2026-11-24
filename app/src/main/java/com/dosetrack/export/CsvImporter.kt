@@ -1,6 +1,7 @@
 package com.dosetrack.export
 
 import com.dosetrack.data.DataRules
+import com.dosetrack.data.model.AdministrationRoute
 import com.dosetrack.data.model.DosageUnit
 import com.dosetrack.data.model.SitePoint
 import com.dosetrack.data.settings.AppSettings
@@ -24,6 +25,7 @@ data class BackupMedication(
     val dosageUnit: DosageUnit,
     val isDeleted: Boolean,
     val createdAt: Instant,
+    val route: AdministrationRoute = AdministrationRoute.INJECTION,
 )
 
 data class BackupInjection(
@@ -72,16 +74,16 @@ object CsvImporter {
                         "This backup was made by a newer version of DoseTrack. Update the app and try again.",
                     )
                 }
-                parseBackup(records.drop(1), now)
+                parseBackup(records.drop(1), version, now)
             }
             first.matchesHeader(CsvExporter.LEGACY_HEADER) -> parseLegacy(records.drop(1), zone, now)
             else -> throw InvalidImportFileException("This doesn't look like a DoseTrack backup file.")
         }
     }
 
-    // region Format 2: sectioned full backup
+    // region Formats 2 and 3: sectioned full backup (3 adds the medication Route column)
 
-    private fun parseBackup(records: List<List<String>>, now: Instant): ParsedBackup {
+    private fun parseBackup(records: List<List<String>>, version: Int, now: Instant): ParsedBackup {
         val sections = splitSections(records)
         val medicationRows = sections[CsvExporter.SECTION_MEDICATIONS]
             ?: throw InvalidImportFileException("The backup is missing its medications section.")
@@ -89,12 +91,13 @@ object CsvImporter {
             ?: throw InvalidImportFileException("The backup is missing its injections section.")
 
         var invalid = 0
-        val medications = rowsUnder(medicationRows, CsvExporter.MEDICATION_HEADER).mapNotNull { record ->
-            parseMedication(record, now).also { if (it == null) invalid++ }
+        val medicationHeader = if (version >= 3) CsvExporter.MEDICATION_HEADER else CsvExporter.MEDICATION_HEADER_V2
+        val medications = rowsUnder(medicationRows, medicationHeader).mapNotNull { record ->
+            parseMedication(record, medicationHeader, now).also { if (it == null) invalid++ }
         }
-        val knownIds = medications.map { it.backupId }.toSet()
+        val routeById = medications.associate { it.backupId to it.route }
         val injections = rowsUnder(injectionRows, CsvExporter.INJECTION_HEADER).mapNotNull { record ->
-            parseInjection(record, knownIds, now).also { if (it == null) invalid++ }
+            parseInjection(record, routeById, now).also { if (it == null) invalid++ }
         }
         val settings = sections[CsvExporter.SECTION_SETTINGS]
             ?.let { rowsUnder(it, CsvExporter.SETTINGS_HEADER) }
@@ -127,8 +130,8 @@ object CsvImporter {
         return section.drop(1)
     }
 
-    private fun parseMedication(r: List<String>, now: Instant): BackupMedication? {
-        if (r.size != CsvExporter.MEDICATION_HEADER.size) return null
+    private fun parseMedication(r: List<String>, header: List<String>, now: Instant): BackupMedication? {
+        if (r.size != header.size) return null
         return BackupMedication(
             backupId = r[0].trim().toLongOrNull() ?: return null,
             name = r[1].trim().takeIf { it.isNotEmpty() && it.length <= DataRules.MAX_NAME_LENGTH } ?: return null,
@@ -136,22 +139,29 @@ object CsvImporter {
             dosageUnit = enumOrNull<DosageUnit>(r[3]) ?: return null,
             isDeleted = r[4].isYes(),
             createdAt = recordInstant(r[5], now) ?: return null,
+            // Format 2 had no Route column: every medication then was injected.
+            route = if (r.size > 6) enumOrNull<AdministrationRoute>(r[6]) ?: return null else AdministrationRoute.INJECTION,
         )
     }
 
-    private fun parseInjection(r: List<String>, knownMedicationIds: Set<Long>, now: Instant): BackupInjection? {
+    private fun parseInjection(
+        r: List<String>,
+        routeByMedicationId: Map<Long, AdministrationRoute>,
+        now: Instant,
+    ): BackupInjection? {
+        if (r.size != CsvExporter.INJECTION_HEADER.size) return null
         val notes = noteOrInvalid(r[4]) ?: return null
         val reactionNote = noteOrInvalid(r[6]) ?: return null
-        if (r.size != CsvExporter.INJECTION_HEADER.size) return null
         val site = parseSite(r[7], r[8]) ?: return null
         val isNoteOnly = when (r[9].trim()) {
             CsvExporter.TYPE_NOTE -> true
             CsvExporter.TYPE_INJECTION -> false
             else -> return null
         }
-        if (!isNoteOnly && site.value == null) return null
         val medicationId = r[10].trim().ifBlank { null }?.let { it.toLongOrNull() ?: return null }
-        if (medicationId != null && medicationId !in knownMedicationIds) return null
+        val route = medicationId?.let { routeByMedicationId[it] ?: return null }
+        // Same rule as the log screen: a dose needs a site unless its medication isn't injected.
+        if (!isNoteOnly && site.value == null && route?.isInjected != false) return null
         return BackupInjection(
             timestamp = recordInstant(r[11], now) ?: return null,
             isNoteOnly = isNoteOnly,

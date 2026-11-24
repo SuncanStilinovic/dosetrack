@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.dosetrack.data.model.AdministrationRoute
 import com.dosetrack.data.model.DosageUnit
 import com.dosetrack.di.appContainer
 
@@ -44,6 +45,7 @@ fun MedicationEditScreen(
     )
     val uiState = viewModel.uiState
     var unitMenuExpanded by remember { mutableStateOf(false) }
+    var routeMenuExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
@@ -58,6 +60,41 @@ fun MedicationEditScreen(
                 label = { Text("Name") },
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            ExposedDropdownMenuBox(
+                expanded = routeMenuExpanded,
+                onExpandedChange = { routeMenuExpanded = it },
+            ) {
+                OutlinedTextField(
+                    value = uiState.route.label,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("How it's taken") },
+                    supportingText = if (!uiState.route.isInjected) {
+                        { Text("Logged without choosing a site on the body") }
+                    } else {
+                        null
+                    },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = routeMenuExpanded) },
+                    modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                )
+                ExposedDropdownMenu(
+                    expanded = routeMenuExpanded,
+                    onDismissRequest = { routeMenuExpanded = false },
+                ) {
+                    AdministrationRoute.entries.forEach { route ->
+                        DropdownMenuItem(
+                            text = { Text(route.label) },
+                            onClick = {
+                                viewModel.updateRoute(route)
+                                routeMenuExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
