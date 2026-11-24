@@ -26,9 +26,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.dosetrack.data.model.Medication
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
 import com.dosetrack.di.appContainer
 import com.dosetrack.ui.common.ConfirmDeleteDialog
+import com.dosetrack.ui.common.LocalUse24HourClock
+import com.dosetrack.ui.common.reminderSummary
 import androidx.compose.ui.res.painterResource
 import com.dosetrack.R
 
@@ -68,11 +71,11 @@ fun MedicationListScreen(
                     bottom = padding.calculateBottomPadding() + 80.dp,
                 ),
             ) {
-                items(medications, key = { it.id }) { medication ->
+                items(medications, key = { it.medication.id }) { item ->
                     MedicationRow(
-                        medication = medication,
-                        onClick = { onEditMedication(medication.id) },
-                        onDelete = { pendingDeleteId = medication.id },
+                        item = item,
+                        onClick = { onEditMedication(item.medication.id) },
+                        onDelete = { pendingDeleteId = item.medication.id },
                     )
                 }
             }
@@ -82,7 +85,7 @@ fun MedicationListScreen(
     pendingDeleteId?.let { id ->
         ConfirmDeleteDialog(
             title = "Delete medication?",
-            message = "Past injections that used it will keep showing its name.",
+            message = "Its reminder is turned off. Past entries that used it will keep showing its name.",
             onConfirm = {
                 viewModel.deleteMedication(id)
                 pendingDeleteId = null
@@ -94,10 +97,14 @@ fun MedicationListScreen(
 
 @Composable
 private fun MedicationRow(
-    medication: Medication,
+    item: MedicationListItem,
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val medication = item.medication
+    val reminderText = item.reminder?.let {
+        reminderSummary(it, LocalUse24HourClock.current, item.dosesLogged, item.reminderEnded)
+    }
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -113,6 +120,25 @@ private fun MedicationRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(medication.name)
                 Text("${medication.dosageLabel} · ${medication.route.label}")
+                reminderText?.let { text ->
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
+                        Icon(
+                            painterResource(R.drawable.ic_schedule),
+                            contentDescription = "Reminder",
+                            modifier = Modifier.size(16.dp).padding(end = 4.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (item.reminderEnded) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
+                    }
+                }
             }
             IconButton(onClick = onDelete) {
                 Icon(painterResource(R.drawable.ic_delete), contentDescription = "Delete ${medication.name}")

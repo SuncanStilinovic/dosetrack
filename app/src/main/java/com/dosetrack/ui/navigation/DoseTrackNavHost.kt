@@ -55,13 +55,19 @@ fun DoseTrackNavHost(
                     type = NavType.BoolType
                     defaultValue = false
                 },
+                navArgument(Destination.LogEntry.ARG_MEDICATION_ID) {
+                    type = NavType.LongType
+                    defaultValue = -1L
+                },
             ),
         ) { backStackEntry ->
             val entryId = backStackEntry.arguments?.getLong(Destination.LogEntry.ARG_ENTRY_ID) ?: -1L
             val noteOnly = backStackEntry.arguments?.getBoolean(Destination.LogEntry.ARG_NOTE_ONLY) ?: false
+            val medicationId = backStackEntry.arguments?.getLong(Destination.LogEntry.ARG_MEDICATION_ID) ?: -1L
             LogEntryScreen(
                 entryId = entryId.takeIf { it != -1L },
                 noteOnly = noteOnly,
+                preselectedMedicationId = medicationId.takeIf { it != -1L },
                 onDone = { navController.popBackStack() },
             )
         }

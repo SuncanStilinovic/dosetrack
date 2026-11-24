@@ -5,14 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dosetrack.data.repository.SettingsRepository
 import com.dosetrack.data.settings.AppSettings
-import com.dosetrack.data.settings.ReminderConfig
 import com.dosetrack.export.BackupExporter
 import com.dosetrack.export.HistoryImporter
 import com.dosetrack.export.ImportResult
 import com.dosetrack.export.InvalidImportFileException
 import com.dosetrack.export.PasswordRequiredException
 import com.dosetrack.export.WrongPasswordException
-import com.dosetrack.reminders.AlarmScheduler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -43,7 +41,6 @@ sealed interface ExportUiState {
 
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
-    private val alarmScheduler: AlarmScheduler,
     private val historyImporter: HistoryImporter,
     private val backupExporter: BackupExporter,
 ) : ViewModel() {
@@ -57,13 +54,6 @@ class SettingsViewModel(
 
     fun updateUse24HourClock(use24Hour: Boolean) {
         viewModelScope.launch { settingsRepository.updateUse24HourClock(use24Hour) }
-    }
-
-    fun updateReminderConfig(config: ReminderConfig) {
-        viewModelScope.launch {
-            settingsRepository.updateReminderConfig(config)
-            alarmScheduler.scheduleNext(config)
-        }
     }
 
     // region Export

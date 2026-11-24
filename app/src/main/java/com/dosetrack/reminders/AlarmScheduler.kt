@@ -1,11 +1,14 @@
 package com.dosetrack.reminders
 
-import com.dosetrack.data.settings.ReminderConfig
+import java.time.Instant
 
+/** Arms one alarm per medication. Alarms are recomputed from the saved reminders after a reboot. */
 interface AlarmScheduler {
-    /** Computes and arms the next fire time for [config]. After a reboot it is recomputed from the saved config. */
-    suspend fun scheduleNext(config: ReminderConfig)
+    /** Arms the alarm for [medicationId] at [at], replacing any earlier one; null cancels it. */
+    fun schedule(medicationId: Long, at: Instant?)
 
-    /** Cancels any pending alarm. */
-    fun cancel()
+    fun cancel(medicationId: Long)
+
+    /** Cancels the single app-wide alarm used before reminders were per medication (up to 1.3.x). */
+    fun cancelLegacy()
 }

@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.dosetrack.data.repository.InjectionRepository
 import com.dosetrack.data.repository.MedicationRepository
+import com.dosetrack.data.repository.ReminderRepository
 import com.dosetrack.data.repository.SettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -14,13 +15,14 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 /**
- * Writes a full backup (medications, history, settings): the [CsvExporter] text, encrypted with the
+ * Writes a full backup (medications, history, reminders, settings): the [CsvExporter] text, encrypted with the
  * user's password by [BackupCrypto]. The caller should clear the password array afterwards.
  */
 class BackupExporter(
     private val context: Context,
     private val medicationRepository: MedicationRepository,
     private val injectionRepository: InjectionRepository,
+    private val reminderRepository: ReminderRepository,
     private val settingsRepository: SettingsRepository,
 ) {
 
@@ -50,6 +52,7 @@ class BackupExporter(
         val csv = CsvExporter.buildBackup(
             medications = medicationRepository.observeAll().first(),
             entries = injectionRepository.observeAllWithMedication().first(),
+            reminders = reminderRepository.getActive(),
             settings = settingsRepository.settingsFlow.first(),
         )
         // Key derivation is deliberately slow (~1 s); keep it off the IO pool.

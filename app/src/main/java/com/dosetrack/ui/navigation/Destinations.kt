@@ -9,12 +9,15 @@ sealed class Destination(val route: String) {
     data object Medications : Destination("medications")
     data object Settings : Destination("settings")
 
-    data object LogEntry : Destination("log_entry?entryId={entryId}&noteOnly={noteOnly}") {
+    data object LogEntry : Destination("log_entry?entryId={entryId}&noteOnly={noteOnly}&medicationId={medicationId}") {
         const val ARG_ENTRY_ID = "entryId"
         const val ARG_NOTE_ONLY = "noteOnly"
 
-        fun route(entryId: Long? = null, noteOnly: Boolean = false): String =
-            "log_entry?entryId=${entryId ?: -1}&noteOnly=$noteOnly"
+        /** Medication to preselect on a new entry, e.g. when opened from its reminder. */
+        const val ARG_MEDICATION_ID = "medicationId"
+
+        fun route(entryId: Long? = null, noteOnly: Boolean = false, medicationId: Long? = null): String =
+            "log_entry?entryId=${entryId ?: -1}&noteOnly=$noteOnly&medicationId=${medicationId ?: -1}"
     }
 
     data object MedicationEdit : Destination("medication_edit?medicationId={medicationId}") {

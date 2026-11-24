@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,6 +34,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dosetrack.data.model.AdministrationRoute
 import com.dosetrack.data.model.DosageUnit
 import com.dosetrack.di.appContainer
+import com.dosetrack.ui.common.ReminderConfigSection
+import com.dosetrack.ui.common.rememberReminderPermissions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,7 +58,13 @@ fun MedicationEditScreen(
             TopAppBar(title = { Text(if (medicationId == null) "Add Medication" else "Edit Medication") })
         },
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+        ) {
             OutlinedTextField(
                 value = uiState.name,
                 onValueChange = viewModel::updateName,
@@ -142,7 +153,17 @@ fun MedicationEditScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+            ReminderConfigSection(
+                config = uiState.reminder,
+                onConfigChange = viewModel::updateReminder,
+                permissions = rememberReminderPermissions(),
+                dosesLogged = uiState.dosesLoggedForDisplay,
+                hasEnded = uiState.hasEnded,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = { viewModel.save(onDone) },

@@ -11,6 +11,7 @@ import com.dosetrack.data.model.SitePoint
 import com.dosetrack.data.repository.InjectionRepository
 import com.dosetrack.data.repository.MedicationRepository
 import com.dosetrack.data.repository.SettingsRepository
+import com.dosetrack.reminders.ReminderCoordinator
 import com.dosetrack.ui.common.InjectionSiteGrids
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -19,11 +20,20 @@ class LogEntryViewModel(
     private val injectionRepository: InjectionRepository,
     private val medicationRepository: MedicationRepository,
     private val settingsRepository: SettingsRepository,
+    private val reminderCoordinator: ReminderCoordinator,
     private val entryId: Long?,
     noteOnlyArg: Boolean,
+    preselectedMedicationId: Long? = null,
 ) : ViewModel() {
 
-    var uiState by mutableStateOf(LogEntryUiState(isNoteOnly = noteOnlyArg, isEditing = entryId != null))
+    var uiState by mutableStateOf(
+        LogEntryUiState(
+            isNoteOnly = noteOnlyArg,
+            isEditing = entryId != null,
+            // Only for new entries (e.g. opened from a reminder); an edited entry keeps its own medication.
+            medicationId = preselectedMedicationId.takeIf { entryId == null && !noteOnlyArg },
+        ),
+    )
         private set
 
     init {
@@ -101,6 +111,8 @@ class LogEntryViewModel(
                 updatedAt = now,
             )
             injectionRepository.save(injection)
+            // A dose may complete an "end after N doses" reminder; an edit may move it between medications.
+            reminderCoordinator.rescheduleAll()
             onDone()
         }
     }

@@ -2,10 +2,13 @@ package com.dosetrack.export
 
 import com.dosetrack.data.db.dao.InjectionDao
 import com.dosetrack.data.db.dao.MedicationDao
+import com.dosetrack.data.db.dao.MedicationReminderDao
 import com.dosetrack.data.db.entities.InjectionEntity
 import com.dosetrack.data.db.entities.MedicationEntity
 import com.dosetrack.data.db.entities.toDomain
+import com.dosetrack.data.db.entities.toEntity
 import com.dosetrack.data.model.Medication
+import com.dosetrack.data.model.MedicationReminder
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -15,6 +18,7 @@ data class ImportResult(
     val invalid: Int,
     val medicationsCreated: Int,
     val settingsRestored: Boolean,
+    val remindersRestored: Int = 0,
 )
 
 /**
@@ -27,6 +31,8 @@ data class ImportResult(
 class BackupRestorer(
     private val medicationDao: MedicationDao,
     private val injectionDao: InjectionDao,
+    /** Null skips restoring reminders (tests that only cover history). */
+    private val reminderDao: MedicationReminderDao? = null,
     private val clock: () -> Instant = Instant::now,
 ) {
 
@@ -104,7 +110,17 @@ class BackupRestorer(
             imported++
         }
 
-        return ImportResult(imported, duplicates, parsed.invalidRows, created, settingsRestored = false)
+        // A backup's reminder replaces the one on the matching local medication, like settings do.
+        var remindersRestored = 0
+        if (reminderDao != null) {
+            for (reminder in parsed.reminders) {
+                val medicationId = localIdByBackupId[reminder.backupMedicationId] ?: continue
+                reminderDao.upsert(MedicationReminder(medicationId, reminder.config).toEntity())
+                remindersRestored++
+            }
+        }
+
+        return ImportResult(imported, duplicates, parsed.invalidRows, created, settingsRestored = false, remindersRestored)
     }
 
     private fun BackupMedication.dosageLabel() =

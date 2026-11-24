@@ -6,11 +6,13 @@ import com.dosetrack.data.model.DosageUnit
 import com.dosetrack.data.model.Injection
 import com.dosetrack.data.model.InjectionWithMedication
 import com.dosetrack.data.model.Medication
+import com.dosetrack.data.model.MedicationReminder
+import com.dosetrack.data.model.ReminderEndMode
 import com.dosetrack.data.model.SitePoint
 import com.dosetrack.data.settings.AppSettings
-import com.dosetrack.data.settings.IntervalUnit
-import com.dosetrack.data.settings.ReminderConfig
-import com.dosetrack.data.settings.ReminderMode
+import com.dosetrack.data.model.IntervalUnit
+import com.dosetrack.data.model.ReminderConfig
+import com.dosetrack.data.model.ReminderMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
@@ -18,6 +20,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 
 /** Export -> import of the CSV backup format, plus the older history-only format and hostile input. */
@@ -45,17 +48,34 @@ class BackupFormatTest {
             id = 2, timestamp = t0.minusSeconds(86_400), isNoteOnly = true, site = null, medicationId = null,
             hadReaction = false, reactionNote = null, notes = "Settings", createdAt = t0, updatedAt = t0,
         )
-        val settings = AppSettings(
-            siteHistoryCount = 7,
-            reminderConfig = ReminderConfig(
-                mode = ReminderMode.DAYS_OF_WEEK,
-                days = setOf(DayOfWeek.MONDAY, DayOfWeek.THURSDAY),
-                timeOfDayMinutes = 495,
-                intervalValue = 2,
-                intervalUnit = IntervalUnit.WEEKS,
-                startAt = t0,
+        val settings = AppSettings(siteHistoryCount = 7, use24HourClock = true)
+        val reminders = listOf(
+            MedicationReminder(
+                7,
+                ReminderConfig(
+                    mode = ReminderMode.DAYS_OF_WEEK,
+                    days = setOf(DayOfWeek.MONDAY, DayOfWeek.THURSDAY),
+                    timeOfDayMinutes = 495,
+                    intervalValue = 2,
+                    intervalUnit = IntervalUnit.WEEKS,
+                    startAt = t0,
+                    endMode = ReminderEndMode.AFTER_DOSES,
+                    endAfterDoses = 14,
+                    countFrom = t0,
+                ),
             ),
-            use24HourClock = true,
+            MedicationReminder(
+                9,
+                ReminderConfig(
+                    mode = ReminderMode.INTERVAL,
+                    intervalValue = 3,
+                    intervalUnit = IntervalUnit.DAYS,
+                    startAt = t0,
+                    endMode = ReminderEndMode.ON_DATE,
+                    endDate = LocalDate.of(2026, 12, 31),
+                    countFrom = t0.minusSeconds(60),
+                ),
+            ),
         )
 
         val csv = CsvExporter.buildBackup(
@@ -63,8 +83,10 @@ class BackupFormatTest {
             entries = listOf(InjectionWithMedication(injection, pen), InjectionWithMedication(note, null)),
             settings = settings,
             zone = zone,
+            reminders = reminders,
         )
         val parsed = parse(csv)
+        assertEquals(reminders.map { BackupReminder(it.medicationId, it.config) }, parsed.reminders)
 
         assertEquals(0, parsed.invalidRows)
         assertEquals(
@@ -175,6 +197,7 @@ class BackupFormatTest {
         injectionRows: String,
         settingsRows: String = "",
         version: Int = CsvExporter.FORMAT_VERSION,
+        reminderRows: String? = null,
     ) = """
 DoseTrack backup,$version
 Medications
@@ -183,6 +206,7 @@ $medicationRows
 Injections
 ${CsvExporter.INJECTION_HEADER.joinToString(",")}
 $injectionRows
+${reminderRows?.let { "Reminders\n${CsvExporter.REMINDER_HEADER.joinToString(",")}\n$it" }.orEmpty()}
 Settings
 Key,Value
 $settingsRows
@@ -298,21 +322,74 @@ $settingsRows
 
     @Test
     fun `out-of-range settings fall back to defaults`() {
+        val parsed = parse(backup(goodMed, "", "site_history_count,2000000000"))
+        assertEquals(AppSettings().siteHistoryCount, parsed.settings!!.siteHistoryCount)
+    }
+
+    @Test
+    fun `the old app-wide reminder in format 3 settings is ignored`() {
         val settings = """
-            site_history_count,2000000000
-            reminder_interval_value,0
-            reminder_time_minutes,9999
-            reminder_mode,BOGUS
-            reminder_start_at,-1000000000-01-01T00:00:00Z
+            site_history_count,5
+            reminder_mode,DAYS_OF_WEEK
+            reminder_days,MONDAY
+            reminder_time_minutes,510
         """.trimIndent()
-        val parsed = parse(backup(goodMed, "", settings))
-        val defaults = AppSettings()
-        val restored = parsed.settings!!
-        assertEquals(defaults.siteHistoryCount, restored.siteHistoryCount)
-        assertEquals(defaults.reminderConfig.intervalValue, restored.reminderConfig.intervalValue)
-        assertEquals(defaults.reminderConfig.timeOfDayMinutes, restored.reminderConfig.timeOfDayMinutes)
-        assertEquals(defaults.reminderConfig.mode, restored.reminderConfig.mode)
-        assertTrue(DataRules.isValidReminderStart(restored.reminderConfig.startAt))
+        val parsed = parse(backup(goodMed, "", settings, version = 3))
+        assertEquals(0, parsed.invalidRows)
+        assertEquals(5, parsed.settings!!.siteHistoryCount)
+        assertTrue(parsed.reminders.isEmpty())
+    }
+
+    private fun reminderRow(
+        medicationId: String = "1",
+        mode: String = "DAYS_OF_WEEK",
+        days: String = "MONDAY;THURSDAY",
+        time: String = "08:30",
+        intervalValue: String = "1",
+        startAt: String = "2026-03-01T08:00:00Z",
+        endMode: String = "NEVER",
+        endDate: String = "",
+        endAfterDoses: String = "",
+        countFrom: String = "2026-03-01T08:00:00Z",
+    ) = "$medicationId,$mode,$days,$time,$intervalValue,DAYS,$startAt,$endMode,$endDate,$endAfterDoses,$countFrom"
+
+    @Test
+    fun `valid reminders are read with their end rule`() {
+        val rows = listOf(
+            reminderRow(),
+            reminderRow(medicationId = "2", mode = "INTERVAL", days = "", endMode = "AFTER_DOSES", endAfterDoses = "14"),
+        ).joinToString("\n")
+        val parsed = parse(backup("$goodMed\n$oralMed", "", reminderRows = rows))
+        assertEquals(0, parsed.invalidRows)
+        assertEquals(listOf(1L, 2L), parsed.reminders.map { it.backupMedicationId })
+        val weekly = parsed.reminders[0].config
+        assertEquals(setOf(DayOfWeek.MONDAY, DayOfWeek.THURSDAY), weekly.days)
+        assertEquals(8 * 60 + 30, weekly.timeOfDayMinutes)
+        assertEquals(ReminderEndMode.NEVER, weekly.endMode)
+        assertEquals(14, parsed.reminders[1].config.endAfterDoses)
+    }
+
+    @Test
+    fun `invalid reminder rows are skipped`() {
+        val rows = listOf(
+            reminderRow(medicationId = "42"), // unknown medication
+            reminderRow(mode = "NONE"),
+            reminderRow(mode = "BOGUS"),
+            reminderRow(days = ""), // days of week with no day
+            reminderRow(days = "MONDAY;FUNDAY"),
+            reminderRow(time = "25:00"),
+            reminderRow(intervalValue = "0"),
+            reminderRow(startAt = "-1000000000-01-01T00:00:00Z"),
+            reminderRow(endMode = "ON_DATE"), // no date
+            reminderRow(endMode = "ON_DATE", endDate = "2025-06-01"), // before 2026
+            reminderRow(endMode = "AFTER_DOSES", endAfterDoses = "0"),
+            reminderRow(endMode = "AFTER_DOSES", endAfterDoses = "5000"),
+            reminderRow(countFrom = "2030-01-01T00:00:00Z"), // in the future
+            "1,DAYS_OF_WEEK,MONDAY",
+        ).joinToString("\n")
+        val parsed = parse(backup(goodMed, "", reminderRows = rows))
+        assertTrue(parsed.reminders.isEmpty())
+        assertEquals(14, parsed.invalidRows)
     }
 
     @Test
@@ -328,9 +405,11 @@ $settingsRows
     }
 
     @Test
-    fun `reminder start may be in the future`() {
-        val parsed = parse(backup(goodMed, "", "reminder_start_at,2027-06-01T08:00:00Z"))
-        assertEquals(Instant.parse("2027-06-01T08:00:00Z"), parsed.settings!!.reminderConfig.startAt)
+    fun `reminder start and end date may be in the future`() {
+        val row = reminderRow(startAt = "2027-06-01T08:00:00Z", endMode = "ON_DATE", endDate = "2027-12-31")
+        val config = parse(backup(goodMed, "", reminderRows = row)).reminders.single().config
+        assertEquals(Instant.parse("2027-06-01T08:00:00Z"), config.startAt)
+        assertEquals(LocalDate.of(2027, 12, 31), config.endDate)
     }
 
     // endregion

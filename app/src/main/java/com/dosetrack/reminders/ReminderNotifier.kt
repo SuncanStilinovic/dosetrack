@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -11,15 +12,19 @@ import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.app.TaskStackBuilder
 import com.dosetrack.R
+import com.dosetrack.data.model.Medication
 import com.dosetrack.ui.MainActivity
 
 object ReminderNotifier {
 
     private const val CHANNEL_ID = "injection_reminders"
-    private const val NOTIFICATION_ID = 2001
 
-    fun show(context: Context) {
+    /** Notification ids are offset per medication, so reminders for different medications don't replace each other. */
+    private const val NOTIFICATION_ID_BASE = 2001
+
+    fun show(context: Context, medication: Medication) {
         ensureChannel(context)
 
         val hasPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -29,13 +34,14 @@ object ReminderNotifier {
             ) == PackageManager.PERMISSION_GRANTED
         if (!hasPermission) return
 
+        val notificationId = NOTIFICATION_ID_BASE + medication.id.toInt()
+
+        // Opens the log screen with this medication selected (handled in MainActivity).
         val contentIntent = Intent(context, MainActivity::class.java)
-        val pendingIntent = androidx.core.app.TaskStackBuilder.create(context)
+            .putExtra(MainActivity.EXTRA_LOG_MEDICATION_ID, medication.id)
+        val pendingIntent = TaskStackBuilder.create(context)
             .addNextIntentWithParentStack(contentIntent)
-            .getPendingIntent(
-                NOTIFICATION_ID,
-                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
-            )
+            .getPendingIntent(notificationId, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
         // Shown on a secure lock screen instead of the real content, so it doesn't reveal medical use.
         val publicVersion = NotificationCompat.Builder(context, CHANNEL_ID)
@@ -46,8 +52,8 @@ object ReminderNotifier {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_reminder)
-            .setContentTitle(context.getString(R.string.reminder_notification_title))
-            .setContentText(context.getString(R.string.reminder_notification_body))
+            .setContentTitle(context.getString(R.string.reminder_notification_title, medication.name))
+            .setContentText(context.getString(R.string.reminder_notification_body, medication.dosageLabel))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
@@ -55,7 +61,7 @@ object ReminderNotifier {
             .setPublicVersion(publicVersion)
             .build()
 
-        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+        NotificationManagerCompat.from(context).notify(notificationId, notification)
     }
 
     private fun ensureChannel(context: Context) {

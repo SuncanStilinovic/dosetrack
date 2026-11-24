@@ -7,5 +7,5 @@ import com.dosetrack.di.AppContainer
 class HistoryViewModelFactory(private val container: AppContainer) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        HistoryViewModel(container.injectionRepository) as T
+        HistoryViewModel(container.injectionRepository, container.reminderCoordinator) as T
 }

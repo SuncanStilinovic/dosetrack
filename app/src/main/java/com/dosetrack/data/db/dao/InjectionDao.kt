@@ -25,6 +25,13 @@ interface InjectionDao {
     @Query("SELECT * FROM injections WHERE id = :id")
     suspend fun getById(id: Long): InjectionEntity?
 
+    /** Doses (not notes) of one medication logged at or after [fromMillis]; counts towards a reminder's end. */
+    @Query(
+        "SELECT COUNT(*) FROM injections " +
+            "WHERE medicationId = :medicationId AND isNoteOnly = 0 AND timestamp >= :fromMillis",
+    )
+    suspend fun countDoses(medicationId: Long, fromMillis: Long): Int
+
     @Query("SELECT * FROM injections WHERE timestamp >= :fromMillis AND timestamp < :toMillis")
     suspend fun getInRange(fromMillis: Long, toMillis: Long): List<InjectionEntity>
 

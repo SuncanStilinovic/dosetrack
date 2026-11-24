@@ -3,7 +3,12 @@ package com.dosetrack.ui
 import com.dosetrack.data.model.AdministrationRoute
 import com.dosetrack.data.model.DosageUnit
 import com.dosetrack.data.model.Medication
+import com.dosetrack.data.model.ReminderConfig
+import com.dosetrack.data.model.ReminderEndMode
+import com.dosetrack.data.model.ReminderMode
 import com.dosetrack.data.model.SitePoint
+import java.time.DayOfWeek
+import java.time.LocalDate
 import com.dosetrack.ui.common.InjectionSiteGrids
 import com.dosetrack.ui.logentry.LogEntryUiState
 import com.dosetrack.ui.medications.MedicationEditUiState
@@ -86,4 +91,69 @@ class InputValidationTest {
     fun `medication needs a name`() {
         assertFalse(MedicationEditUiState(name = "  ", dosageAmount = "1").isValid)
     }
+
+    // region Reminder on the medication screen
+
+    private val today = LocalDate.of(2026, 11, 24)
+    private val weekly = ReminderConfig(mode = ReminderMode.DAYS_OF_WEEK, days = setOf(DayOfWeek.MONDAY))
+
+    private fun withReminder(reminder: ReminderConfig, saved: ReminderConfig? = null, doses: Int = 0) =
+        MedicationEditUiState(
+            name = "Ozempic",
+            dosageAmount = "0.5",
+            reminder = reminder,
+            savedReminder = saved,
+            savedDosesLogged = doses,
+            today = today,
+        )
+
+    @Test
+    fun `reminder needs a day, a valid end date and a dose count in range`() {
+        assertTrue(withReminder(ReminderConfig()).isValid) // off
+        assertTrue(withReminder(weekly).isValid)
+        assertFalse(withReminder(weekly.copy(days = emptySet())).isValid)
+
+        val onDate = weekly.copy(endMode = ReminderEndMode.ON_DATE)
+        assertFalse(withReminder(onDate).isValid) // no date chosen
+        assertTrue(withReminder(onDate.copy(endDate = today)).isValid)
+        assertFalse(withReminder(onDate.copy(endDate = today.minusDays(1))).isValid)
+
+        val afterDoses = weekly.copy(endMode = ReminderEndMode.AFTER_DOSES)
+        assertFalse(withReminder(afterDoses).isValid) // no count entered
+        assertTrue(withReminder(afterDoses.copy(endAfterDoses = 14)).isValid)
+        assertFalse(withReminder(afterDoses.copy(endAfterDoses = 0)).isValid)
+        assertFalse(withReminder(afterDoses.copy(endAfterDoses = 1001)).isValid)
+    }
+
+    @Test
+    fun `a saved past end date can be kept while editing other fields`() {
+        val ended = weekly.copy(endMode = ReminderEndMode.ON_DATE, endDate = today.minusDays(10))
+        assertTrue(withReminder(ended, saved = ended).isValid)
+    }
+
+    @Test
+    fun `the dose count restarts only when the end rule changes`() {
+        val countFrom = Instant.parse("2026-11-01T00:00:00Z")
+        val now = Instant.parse("2026-11-24T12:00:00Z")
+        val saved = weekly.copy(endMode = ReminderEndMode.AFTER_DOSES, endAfterDoses = 14, countFrom = countFrom)
+
+        val sameRule = withReminder(saved.copy(timeOfDayMinutes = 600), saved = saved, doses = 3)
+        assertEquals(3, sameRule.dosesLoggedForDisplay)
+        assertEquals(countFrom, sameRule.reminderToSave(now).countFrom)
+
+        val newCount = withReminder(saved.copy(endAfterDoses = 20), saved = saved, doses = 3)
+        assertNull(newCount.dosesLoggedForDisplay)
+        assertEquals(now, newCount.reminderToSave(now).countFrom)
+
+        assertEquals(now, withReminder(saved).reminderToSave(now).countFrom) // newly turned on
+    }
+
+    @Test
+    fun `an ended reminder is reported until its end rule changes`() {
+        val saved = weekly.copy(endMode = ReminderEndMode.AFTER_DOSES, endAfterDoses = 2)
+        assertTrue(withReminder(saved, saved = saved, doses = 2).hasEnded)
+        assertFalse(withReminder(saved.copy(endAfterDoses = 5), saved = saved, doses = 2).hasEnded)
+    }
+
+    // endregion
 }

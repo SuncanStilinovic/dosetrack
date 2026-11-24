@@ -2,10 +2,18 @@ package com.dosetrack.export
 
 import com.dosetrack.data.db.dao.InjectionDao
 import com.dosetrack.data.db.dao.MedicationDao
+import com.dosetrack.data.db.dao.MedicationReminderDao
 import com.dosetrack.data.db.entities.InjectionEntity
 import com.dosetrack.data.db.entities.InjectionWithMedicationEntity
 import com.dosetrack.data.db.entities.MedicationEntity
+import com.dosetrack.data.db.entities.MedicationReminderEntity
 import com.dosetrack.data.db.entities.SiteCoordinates
+import com.dosetrack.data.db.entities.toDomain
+import com.dosetrack.data.db.entities.toEntity
+import com.dosetrack.data.model.MedicationReminder
+import com.dosetrack.data.model.ReminderConfig
+import com.dosetrack.data.model.ReminderMode
+import java.time.DayOfWeek
 import com.dosetrack.data.model.AdministrationRoute
 import com.dosetrack.data.model.DosageUnit
 import com.dosetrack.data.model.SitePoint
@@ -25,7 +33,8 @@ class BackupRestorerTest {
 
     private val medications = FakeMedicationDao()
     private val injections = FakeInjectionDao()
-    private val restorer = BackupRestorer(medications, injections) { now }
+    private val reminders = FakeReminderDao()
+    private val restorer = BackupRestorer(medications, injections, reminders) { now }
 
     private fun med(id: Long, name: String = "Ozempic", amount: Double = 0.5, unit: DosageUnit = DosageUnit.ML, deleted: Boolean = false) =
         BackupMedication(id, name, amount, unit, deleted, t0)
@@ -153,6 +162,31 @@ class BackupRestorerTest {
     }
 
     @Test
+    fun `reminders attach to the remapped medication and replace an existing one`() {
+        medications.rows += MedicationEntity(id = 1, name = "Local", dosageAmount = 1.0, dosageUnit = "MG", createdAt = 0)
+        medications.nextId = 2
+        reminders.rows[1] = MedicationReminder(1, ReminderConfig(mode = ReminderMode.INTERVAL)).toEntity()
+        val weekly = ReminderConfig(mode = ReminderMode.DAYS_OF_WEEK, days = setOf(DayOfWeek.MONDAY), startAt = t0, countFrom = t0)
+        val result = runBlocking {
+            restorer.restore(
+                ParsedBackup(
+                    medications = listOf(med(1, "FromBackup"), med(5, "Local", 1.0, DosageUnit.MG)),
+                    injections = emptyList(),
+                    settings = null,
+                    invalidRows = 0,
+                    reminders = listOf(BackupReminder(1, weekly), BackupReminder(5, weekly)),
+                ),
+            )
+        }
+
+        assertEquals(2, result.remindersRestored)
+        val fromBackupId = medications.rows.single { it.name == "FromBackup" }.id
+        assertEquals(setOf(1L, fromBackupId), reminders.rows.keys)
+        // The local "Local" medication matched backup id 5, so its reminder was replaced.
+        assertEquals(ReminderMode.DAYS_OF_WEEK, reminders.rows.getValue(1).toDomain().config.mode)
+    }
+
+    @Test
     fun `invalid row count from parsing is reported`() {
         val result = runBlocking { restorer.restore(ParsedBackup(emptyList(), emptyList(), null, invalidRows = 4)) }
         assertEquals(4, result.invalid)
@@ -211,4 +245,24 @@ private class FakeInjectionDao : InjectionDao {
 
     override suspend fun getRecentSites(limit: Int, excludeId: Long): List<SiteCoordinates> =
         throw UnsupportedOperationException()
+
+    override suspend fun countDoses(medicationId: Long, fromMillis: Long): Int =
+        rows.count { it.medicationId == medicationId && !it.isNoteOnly && it.timestamp >= fromMillis }
+}
+
+private class FakeReminderDao : MedicationReminderDao {
+    val rows = mutableMapOf<Long, MedicationReminderEntity>()
+
+    override suspend fun upsert(reminder: MedicationReminderEntity) {
+        rows[reminder.medicationId] = reminder
+    }
+
+    override suspend fun delete(medicationId: Long) {
+        rows.remove(medicationId)
+    }
+
+    override suspend fun get(medicationId: Long): MedicationReminderEntity? = rows[medicationId]
+    override suspend fun getActive(): List<MedicationReminderEntity> = rows.values.toList()
+    override fun observeActive(): Flow<List<MedicationReminderEntity>> = flowOf(rows.values.toList())
+    override suspend fun getAll(): List<MedicationReminderEntity> = rows.values.toList()
 }

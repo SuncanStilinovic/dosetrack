@@ -5,7 +5,7 @@ import android.net.Uri
 import androidx.room.withTransaction
 import com.dosetrack.data.db.DoseTrackDatabase
 import com.dosetrack.data.repository.SettingsRepository
-import com.dosetrack.reminders.AlarmScheduler
+import com.dosetrack.reminders.ReminderCoordinator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -17,14 +17,14 @@ import java.io.InputStream
  * unencrypted CSV from earlier app versions.
  *
  * Medications and history are written by [BackupRestorer] in one transaction, so a failure leaves
- * the database untouched. Settings, when the file has them, replace the current ones and the
- * reminder is re-armed.
+ * the database untouched. Settings, when the file has them, replace the current ones, and every
+ * medication's reminder is re-armed.
  */
 class HistoryImporter(
     private val context: Context,
     private val database: DoseTrackDatabase,
     private val settingsRepository: SettingsRepository,
-    private val alarmScheduler: AlarmScheduler,
+    private val reminderCoordinator: ReminderCoordinator,
 ) {
 
     /**
@@ -41,16 +41,17 @@ class HistoryImporter(
         }
         val parsed = CsvImporter.parse(plaintext.toString(Charsets.UTF_8))
         val result = database.withTransaction {
-            BackupRestorer(database.medicationDao(), database.injectionDao()).restore(parsed)
+            BackupRestorer(database.medicationDao(), database.injectionDao(), database.medicationReminderDao())
+                .restore(parsed)
         }
 
         parsed.settings?.let { settings ->
             settingsRepository.updateSiteHistoryCount(settings.siteHistoryCount)
             settings.use24HourClock?.let { settingsRepository.updateUse24HourClock(it) }
-            val reminder = settings.reminderConfig
-            settingsRepository.updateReminderConfig(reminder)
-            alarmScheduler.scheduleNext(reminder)
         }
+        // Restored reminders and imported doses (which count towards "end after N doses") both
+        // change when reminders should next fire.
+        reminderCoordinator.rescheduleAll()
         result.copy(settingsRestored = parsed.settings != null)
     }
 

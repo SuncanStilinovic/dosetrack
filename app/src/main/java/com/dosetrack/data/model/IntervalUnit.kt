@@ -1,4 +1,4 @@
-package com.dosetrack.data.settings
+package com.dosetrack.data.model
 
 enum class IntervalUnit {
     HOURS,

@@ -10,5 +10,10 @@ class MedicationEditViewModelFactory(
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        MedicationEditViewModel(container.medicationRepository, medicationId) as T
+        MedicationEditViewModel(
+            container.medicationRepository,
+            container.reminderRepository,
+            container.reminderCoordinator,
+            medicationId,
+        ) as T
 }

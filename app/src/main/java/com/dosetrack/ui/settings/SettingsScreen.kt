@@ -1,8 +1,5 @@
 package com.dosetrack.ui.settings
 
-import android.content.Intent
-import android.os.Build
-import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,7 +23,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -39,10 +35,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dosetrack.data.settings.AppSettings
 import com.dosetrack.di.appContainer
@@ -50,7 +42,6 @@ import com.dosetrack.export.BackupCrypto
 import com.dosetrack.export.ImportResult
 import com.dosetrack.export.ShareIntentFactory
 import com.dosetrack.ui.common.LocalUse24HourClock
-import com.dosetrack.util.PermissionUtils
 
 @Composable
 fun SettingsScreen(
@@ -85,25 +76,6 @@ fun SettingsScreen(
         viewModel.onExportHandled()
     }
 
-    var hasNotificationPermission by remember { mutableStateOf(PermissionUtils.hasNotificationPermission(context)) }
-    var hasExactAlarmPermission by remember { mutableStateOf(PermissionUtils.canScheduleExactAlarms(context)) }
-
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-    ) { granted -> hasNotificationPermission = granted }
-
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                hasNotificationPermission = PermissionUtils.hasNotificationPermission(context)
-                hasExactAlarmPermission = PermissionUtils.canScheduleExactAlarms(context)
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -121,27 +93,6 @@ fun SettingsScreen(
             label = { Text("Previous sites to show") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-
-        ReminderConfigSection(
-            config = settings.reminderConfig,
-            onConfigChange = viewModel::updateReminderConfig,
-            hasNotificationPermission = hasNotificationPermission,
-            hasExactAlarmPermission = hasExactAlarmPermission,
-            onRequestNotificationPermission = {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                }
-            },
-            onRequestExactAlarmPermission = {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    context.startActivity(
-                        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, "package:${context.packageName}".toUri()),
-                    )
-                }
-            },
         )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
@@ -176,7 +127,7 @@ fun SettingsScreen(
             }
         }
         Text(
-            text = "Saves all medications, history and settings to one password-protected file " +
+            text = "Saves all medications, reminders, history and settings to one password-protected file " +
                 "you can import on another device.",
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(top = 4.dp),
@@ -268,6 +219,7 @@ private val IMPORT_MIME_TYPES = arrayOf(
 private fun ImportResult.summary(): String = buildString {
     append("Imported $imported ${if (imported == 1) "entry" else "entries"}.")
     if (settingsRestored) append("\nSettings restored.")
+    if (remindersRestored > 0) append("\nRestored $remindersRestored ${if (remindersRestored == 1) "reminder" else "reminders"}.")
     if (medicationsCreated > 0) append("\nAdded $medicationsCreated new ${if (medicationsCreated == 1) "medication" else "medications"}.")
     if (duplicates > 0) append("\nSkipped $duplicates already in the app.")
     if (invalid > 0) append("\nSkipped $invalid unreadable ${if (invalid == 1) "row" else "rows"}.")

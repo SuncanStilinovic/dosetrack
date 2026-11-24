@@ -2,21 +2,26 @@ package com.dosetrack.export
 
 import com.dosetrack.data.model.InjectionWithMedication
 import com.dosetrack.data.model.Medication
+import com.dosetrack.data.model.MedicationReminder
 import com.dosetrack.data.settings.AppSettings
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 /**
- * Writes a full DoseTrack backup as one CSV file with three sections, so it still opens in a
+ * Writes a full DoseTrack backup as one CSV file with four sections, so it still opens in a
  * spreadsheet but can be restored losslessly on another device by [CsvImporter]:
  *
  * ```
- * DoseTrack backup,3
+ * DoseTrack backup,4
  * Medications
  * Id,Name,DosageAmount,DosageUnit,Deleted,CreatedAt,Route
  * ...
  * Injections
  * Date,Time,Medication,Dosage,Notes,Reaction,ReactionNote,SiteX,SiteY,Type,MedicationId,Timestamp,CreatedAt,UpdatedAt
+ * ...
+ * Reminders
+ * MedicationId,Mode,Days,Time,IntervalValue,IntervalUnit,StartAt,EndMode,EndDate,EndAfterDoses,CountFrom
  * ...
  * Settings
  * Key,Value
@@ -29,11 +34,12 @@ import java.time.format.DateTimeFormatter
 object CsvExporter {
 
     const val MAGIC = "DoseTrack backup"
-    /** 3 added the medication Route column; 2 is still accepted on import. */
-    const val FORMAT_VERSION = 3
+    /** 3 added the medication Route column, 4 the Reminders section; 2 and 3 are still accepted on import. */
+    const val FORMAT_VERSION = 4
 
     const val SECTION_MEDICATIONS = "Medications"
     const val SECTION_INJECTIONS = "Injections"
+    const val SECTION_REMINDERS = "Reminders"
     const val SECTION_SETTINGS = "Settings"
 
     /** Header of the original history-only export (format 1); still accepted on import. */
@@ -42,19 +48,18 @@ object CsvExporter {
     val MEDICATION_HEADER_V2 = listOf("Id", "Name", "DosageAmount", "DosageUnit", "Deleted", "CreatedAt")
     val MEDICATION_HEADER = MEDICATION_HEADER_V2 + "Route"
     val INJECTION_HEADER = LEGACY_HEADER + listOf("Type", "MedicationId", "Timestamp", "CreatedAt", "UpdatedAt")
+    val REMINDER_HEADER = listOf(
+        "MedicationId", "Mode", "Days", "Time", "IntervalValue", "IntervalUnit", "StartAt",
+        "EndMode", "EndDate", "EndAfterDoses", "CountFrom",
+    )
     val SETTINGS_HEADER = listOf("Key", "Value")
 
     const val TYPE_INJECTION = "Injection"
     const val TYPE_NOTE = "Note"
 
+    /** Formats 2 and 3 also had app-wide reminder_* keys; those are ignored on import. */
     object SettingKeys {
         const val SITE_HISTORY_COUNT = "site_history_count"
-        const val REMINDER_MODE = "reminder_mode"
-        const val REMINDER_DAYS = "reminder_days"
-        const val REMINDER_TIME_MINUTES = "reminder_time_minutes"
-        const val REMINDER_INTERVAL_VALUE = "reminder_interval_value"
-        const val REMINDER_INTERVAL_UNIT = "reminder_interval_unit"
-        const val REMINDER_START_AT = "reminder_start_at"
         const val USE_24_HOUR_CLOCK = "use_24_hour_clock"
     }
 
@@ -66,6 +71,7 @@ object CsvExporter {
         entries: List<InjectionWithMedication>,
         settings: AppSettings,
         zone: ZoneId = ZoneId.systemDefault(),
+        reminders: List<MedicationReminder> = emptyList(),
     ): String = buildString {
         row(listOf(MAGIC, FORMAT_VERSION.toString()))
 
@@ -113,17 +119,32 @@ object CsvExporter {
         }
 
         appendLine()
+        row(listOf(SECTION_REMINDERS))
+        row(REMINDER_HEADER)
+        reminders.forEach { r ->
+            val c = r.config
+            row(
+                listOf(
+                    r.medicationId.toString(),
+                    c.mode.name,
+                    c.days.sorted().joinToString(";") { it.name },
+                    LocalTime.of(c.timeOfDayMinutes / 60, c.timeOfDayMinutes % 60).format(timeFormatter),
+                    c.intervalValue.toString(),
+                    c.intervalUnit.name,
+                    c.startAt.toString(),
+                    c.endMode.name,
+                    c.endDate?.toString().orEmpty(),
+                    c.endAfterDoses?.toString().orEmpty(),
+                    c.countFrom.toString(),
+                ),
+            )
+        }
+
+        appendLine()
         row(listOf(SECTION_SETTINGS))
         row(SETTINGS_HEADER)
-        val reminder = settings.reminderConfig
         listOf(
             SettingKeys.SITE_HISTORY_COUNT to settings.siteHistoryCount.toString(),
-            SettingKeys.REMINDER_MODE to reminder.mode.name,
-            SettingKeys.REMINDER_DAYS to reminder.days.sorted().joinToString(";") { it.name },
-            SettingKeys.REMINDER_TIME_MINUTES to reminder.timeOfDayMinutes.toString(),
-            SettingKeys.REMINDER_INTERVAL_VALUE to reminder.intervalValue.toString(),
-            SettingKeys.REMINDER_INTERVAL_UNIT to reminder.intervalUnit.name,
-            SettingKeys.REMINDER_START_AT to reminder.startAt.toString(),
             // Left out while unset, so a restore keeps following the target device's clock.
             settings.use24HourClock?.let { SettingKeys.USE_24_HOUR_CLOCK to it.toString() },
         ).filterNotNull().forEach { (key, value) -> row(listOf(key, value)) }

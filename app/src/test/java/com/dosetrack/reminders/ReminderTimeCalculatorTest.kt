@@ -1,13 +1,17 @@
 package com.dosetrack.reminders
 
-import com.dosetrack.data.settings.IntervalUnit
-import com.dosetrack.data.settings.ReminderConfig
-import com.dosetrack.data.settings.ReminderMode
+import com.dosetrack.data.model.IntervalUnit
+import com.dosetrack.data.model.ReminderConfig
+import com.dosetrack.data.model.ReminderEndMode
+import com.dosetrack.data.model.ReminderMode
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
@@ -148,6 +152,52 @@ class ReminderTimeCalculatorTest {
             startAt = Instant.MIN,
         )
         assertNull(next(config, "2026-11-21T12:00"))
+    }
+
+    // endregion
+
+    // region End rules
+
+    private fun nextWithDoses(config: ReminderConfig, now: String, doses: Int) =
+        ReminderTimeCalculator.computeNextFireTime(config, at(now), zone, doses)
+
+    @Test
+    fun `after N doses keeps firing until the Nth dose is logged`() {
+        val config = weekly(DayOfWeek.MONDAY).copy(endMode = ReminderEndMode.AFTER_DOSES, endAfterDoses = 3)
+        assertEquals(at("2026-11-23T08:00"), nextWithDoses(config, "2026-11-21T12:00", doses = 2))
+        assertNull(nextWithDoses(config, "2026-11-21T12:00", doses = 3))
+        assertTrue(ReminderTimeCalculator.hasEnded(config, dosesLogged = 3, now = at("2026-11-21T12:00"), zone = zone))
+        assertFalse(ReminderTimeCalculator.hasEnded(config, dosesLogged = 2, now = at("2026-11-21T12:00"), zone = zone))
+    }
+
+    @Test
+    fun `end date is inclusive`() {
+        val config = weekly(DayOfWeek.MONDAY).copy(endMode = ReminderEndMode.ON_DATE, endDate = LocalDate.of(2026, 11, 23))
+        // The last Monday is the end date itself: it still fires that morning.
+        assertEquals(at("2026-11-23T08:00"), next(config, "2026-11-21T12:00"))
+        // After it, the next Monday is past the end date.
+        assertNull(next(config, "2026-11-23T09:00"))
+        assertTrue(ReminderTimeCalculator.hasEnded(config, dosesLogged = 0, now = at("2026-11-23T09:00"), zone = zone))
+    }
+
+    @Test
+    fun `interval stops after the end date`() {
+        val config = interval(1, IntervalUnit.DAYS, "2026-11-01T08:00")
+            .copy(endMode = ReminderEndMode.ON_DATE, endDate = LocalDate.of(2026, 11, 22))
+        assertEquals(at("2026-11-22T08:00"), next(config, "2026-11-21T12:00"))
+        assertNull(next(config, "2026-11-22T12:00"))
+    }
+
+    @Test
+    fun `incomplete end rules never fire`() {
+        assertNull(next(weekly(DayOfWeek.MONDAY).copy(endMode = ReminderEndMode.ON_DATE, endDate = null), "2026-11-21T12:00"))
+        assertNull(next(weekly(DayOfWeek.MONDAY).copy(endMode = ReminderEndMode.AFTER_DOSES, endAfterDoses = null), "2026-11-21T12:00"))
+    }
+
+    @Test
+    fun `a reminder that never ends or is off has not ended`() {
+        assertFalse(ReminderTimeCalculator.hasEnded(weekly(DayOfWeek.MONDAY), dosesLogged = 100))
+        assertFalse(ReminderTimeCalculator.hasEnded(ReminderConfig(), dosesLogged = 100))
     }
 
     // endregion

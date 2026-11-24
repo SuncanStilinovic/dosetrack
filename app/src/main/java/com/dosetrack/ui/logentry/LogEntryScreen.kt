@@ -43,10 +43,11 @@ fun LogEntryScreen(
     noteOnly: Boolean,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
+    preselectedMedicationId: Long? = null,
 ) {
     val container = LocalContext.current.appContainer()
     val viewModel: LogEntryViewModel = viewModel(
-        factory = LogEntryViewModelFactory(container, entryId, noteOnly),
+        factory = LogEntryViewModelFactory(container, entryId, noteOnly, preselectedMedicationId),
     )
     val uiState = viewModel.uiState
 

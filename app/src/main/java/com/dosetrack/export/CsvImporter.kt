@@ -5,9 +5,10 @@ import com.dosetrack.data.model.AdministrationRoute
 import com.dosetrack.data.model.DosageUnit
 import com.dosetrack.data.model.SitePoint
 import com.dosetrack.data.settings.AppSettings
-import com.dosetrack.data.settings.IntervalUnit
-import com.dosetrack.data.settings.ReminderConfig
-import com.dosetrack.data.settings.ReminderMode
+import com.dosetrack.data.model.IntervalUnit
+import com.dosetrack.data.model.ReminderConfig
+import com.dosetrack.data.model.ReminderEndMode
+import com.dosetrack.data.model.ReminderMode
 import com.dosetrack.export.CsvExporter.SettingKeys
 import java.time.DayOfWeek
 import java.time.Instant
@@ -47,11 +48,19 @@ data class ParsedBackup(
     /** Null when the file carries no settings (format 1). */
     val settings: AppSettings?,
     val invalidRows: Int,
+    /** Per-medication reminders (format 4 and later). */
+    val reminders: List<BackupReminder> = emptyList(),
+)
+
+data class BackupReminder(
+    /** Medication id in the file, as in [BackupMedication.backupId]. */
+    val backupMedicationId: Long,
+    val config: ReminderConfig,
 )
 
 class InvalidImportFileException(message: String) : Exception(message)
 
-/** Pure parsing of [CsvExporter] files (format 2 backups and format 1 history exports). */
+/** Pure parsing of [CsvExporter] files (format 2-4 backups and format 1 history exports). */
 object CsvImporter {
 
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -81,7 +90,7 @@ object CsvImporter {
         }
     }
 
-    // region Formats 2 and 3: sectioned full backup (3 adds the medication Route column)
+    // region Formats 2-4: sectioned full backup (3 adds the medication Route column, 4 the Reminders section)
 
     private fun parseBackup(records: List<List<String>>, version: Int, now: Instant): ParsedBackup {
         val sections = splitSections(records)
@@ -99,16 +108,26 @@ object CsvImporter {
         val injections = rowsUnder(injectionRows, CsvExporter.INJECTION_HEADER).mapNotNull { record ->
             parseInjection(record, routeById, now).also { if (it == null) invalid++ }
         }
+        // Formats 2 and 3 have no Reminders section (their single app-wide reminder is not restored).
+        val reminders = sections[CsvExporter.SECTION_REMINDERS]
+            ?.let { rowsUnder(it, CsvExporter.REMINDER_HEADER) }
+            ?.mapNotNull { record -> parseReminder(record, routeById.keys, now).also { if (it == null) invalid++ } }
+            .orEmpty()
         val settings = sections[CsvExporter.SECTION_SETTINGS]
             ?.let { rowsUnder(it, CsvExporter.SETTINGS_HEADER) }
-            ?.let { parseSettings(it, now) }
+            ?.let { parseSettings(it) }
 
-        return ParsedBackup(medications, injections, settings, invalid)
+        return ParsedBackup(medications, injections, settings, invalid, reminders)
     }
 
     /** Section marker rows are single-cell rows naming the section; every data row has several cells. */
     private fun splitSections(records: List<List<String>>): Map<String, List<List<String>>> {
-        val names = setOf(CsvExporter.SECTION_MEDICATIONS, CsvExporter.SECTION_INJECTIONS, CsvExporter.SECTION_SETTINGS)
+        val names = setOf(
+            CsvExporter.SECTION_MEDICATIONS,
+            CsvExporter.SECTION_INJECTIONS,
+            CsvExporter.SECTION_REMINDERS,
+            CsvExporter.SECTION_SETTINGS,
+        )
         val result = mutableMapOf<String, MutableList<List<String>>>()
         var current: MutableList<List<String>>? = null
         records.forEach { record ->
@@ -175,33 +194,61 @@ object CsvImporter {
         )
     }
 
-    private fun parseSettings(rows: List<List<String>>, now: Instant): AppSettings {
+    /** Settings keys this version doesn't know (such as the old app-wide reminder_* keys) are ignored. */
+    private fun parseSettings(rows: List<List<String>>): AppSettings {
         val values = rows.filter { it.size == 2 }.associate { it[0].trim() to it[1].trim() }
         val defaults = AppSettings()
-        val reminderDefaults = defaults.reminderConfig
         return AppSettings(
             siteHistoryCount = values[SettingKeys.SITE_HISTORY_COUNT]?.toIntOrNull()?.takeIf { it in AppSettings.SITE_HISTORY_RANGE }
                 ?: defaults.siteHistoryCount,
-            reminderConfig = ReminderConfig(
-                mode = values[SettingKeys.REMINDER_MODE]?.let { enumOrNull<ReminderMode>(it) } ?: reminderDefaults.mode,
-                days = values[SettingKeys.REMINDER_DAYS]
-                    ?.split(';')
-                    ?.mapNotNull { enumOrNull<DayOfWeek>(it) }
-                    ?.toSet()
-                    ?: reminderDefaults.days,
-                timeOfDayMinutes = values[SettingKeys.REMINDER_TIME_MINUTES]?.toIntOrNull()?.takeIf { it in 0 until 24 * 60 }
-                    ?: reminderDefaults.timeOfDayMinutes,
-                intervalValue = values[SettingKeys.REMINDER_INTERVAL_VALUE]?.toIntOrNull()?.takeIf { it in ReminderConfig.INTERVAL_RANGE }
-                    ?: reminderDefaults.intervalValue,
-                intervalUnit = values[SettingKeys.REMINDER_INTERVAL_UNIT]?.let { enumOrNull<IntervalUnit>(it) }
-                    ?: reminderDefaults.intervalUnit,
-                startAt = values[SettingKeys.REMINDER_START_AT]
-                    ?.let { parseInstant(it) }
-                    ?.takeIf { DataRules.isValidReminderStart(it, now) }
-                    ?: reminderDefaults.startAt,
-            ),
             use24HourClock = values[SettingKeys.USE_24_HOUR_CLOCK]?.toBooleanStrictOrNull(),
         )
+    }
+
+    /** One medication's reminder; anything out of range makes the whole row invalid, as on the edit screen. */
+    private fun parseReminder(r: List<String>, knownMedicationIds: Set<Long>, now: Instant): BackupReminder? {
+        if (r.size != CsvExporter.REMINDER_HEADER.size) return null
+        val medicationId = r[0].trim().toLongOrNull()?.takeIf { it in knownMedicationIds } ?: return null
+        val mode = enumOrNull<ReminderMode>(r[1])?.takeIf { it != ReminderMode.NONE } ?: return null
+        val days = r[2].trim().takeIf { it.isNotEmpty() }
+            ?.split(';')
+            ?.map { enumOrNull<DayOfWeek>(it) ?: return null }
+            ?.toSet()
+            .orEmpty()
+        if (mode == ReminderMode.DAYS_OF_WEEK && days.isEmpty()) return null
+        val time = try {
+            LocalTime.parse(r[3].trim(), timeFormatter)
+        } catch (e: DateTimeParseException) {
+            return null
+        }
+        val endMode = enumOrNull<ReminderEndMode>(r[7]) ?: return null
+        val config = ReminderConfig(
+            mode = mode,
+            days = days,
+            timeOfDayMinutes = time.hour * 60 + time.minute,
+            intervalValue = r[4].trim().toIntOrNull()?.takeIf { it in ReminderConfig.INTERVAL_RANGE } ?: return null,
+            intervalUnit = enumOrNull<IntervalUnit>(r[5]) ?: return null,
+            startAt = parseInstant(r[6])?.takeIf { DataRules.isValidReminderStart(it, now) } ?: return null,
+            endMode = endMode,
+            endDate = if (endMode == ReminderEndMode.ON_DATE) parseEndDate(r[8], now) ?: return null else null,
+            endAfterDoses = if (endMode == ReminderEndMode.AFTER_DOSES) {
+                r[9].trim().toIntOrNull()?.takeIf { it in ReminderConfig.END_DOSES_RANGE } ?: return null
+            } else {
+                null
+            },
+            countFrom = recordInstant(r[10], now) ?: return null,
+        )
+        return BackupReminder(medicationId, config)
+    }
+
+    /** An end date from 2026 up to as far ahead as a reminder may start. */
+    private fun parseEndDate(text: String, now: Instant): LocalDate? = try {
+        LocalDate.parse(text.trim(), dateFormatter).takeIf {
+            !it.isBefore(DataRules.EARLIEST_DATE) &&
+                DataRules.isValidReminderStart(it.atStartOfDay(java.time.ZoneOffset.UTC).toInstant(), now)
+        }
+    } catch (e: DateTimeParseException) {
+        null
     }
 
     // endregion

@@ -9,7 +9,6 @@ class SettingsViewModelFactory(private val container: AppContainer) : ViewModelP
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         SettingsViewModel(
             container.settingsRepository,
-            container.alarmScheduler,
             container.historyImporter,
             container.backupExporter,
         ) as T

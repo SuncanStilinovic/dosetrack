@@ -1,8 +1,9 @@
 package com.dosetrack.reminders
 
-import com.dosetrack.data.settings.IntervalUnit
-import com.dosetrack.data.settings.ReminderConfig
-import com.dosetrack.data.settings.ReminderMode
+import com.dosetrack.data.model.IntervalUnit
+import com.dosetrack.data.model.ReminderConfig
+import com.dosetrack.data.model.ReminderEndMode
+import com.dosetrack.data.model.ReminderMode
 import java.time.DateTimeException
 import java.time.Instant
 import java.time.ZoneId
@@ -13,23 +14,52 @@ import java.time.temporal.ChronoUnit
 object ReminderTimeCalculator {
 
     /**
-     * Returns null when no reminder should be scheduled, including for configs that are out of range.
+     * Returns null when no reminder should be scheduled: it is off, it has ended (by date or by
+     * [dosesLogged] since [ReminderConfig.countFrom]), or the config is out of range.
      * This runs in broadcast receivers on every boot, so it must never throw or loop unboundedly.
      */
     fun computeNextFireTime(
         config: ReminderConfig,
         now: Instant = Instant.now(),
         zone: ZoneId = ZoneId.systemDefault(),
+        dosesLogged: Int = 0,
     ): Instant? = try {
-        when (config.mode) {
-            ReminderMode.NONE -> null
-            ReminderMode.DAYS_OF_WEEK -> nextDaysOfWeekFireTime(config, now, zone)
-            ReminderMode.INTERVAL -> nextIntervalFireTime(config, now, zone)
+        if (hasEndedByDoses(config, dosesLogged)) {
+            null
+        } else {
+            val next = when (config.mode) {
+                ReminderMode.NONE -> null
+                ReminderMode.DAYS_OF_WEEK -> nextDaysOfWeekFireTime(config, now, zone)
+                ReminderMode.INTERVAL -> nextIntervalFireTime(config, now, zone)
+            }
+            next?.takeIf { isBeforeEndDate(config, it, zone) }
         }
     } catch (e: DateTimeException) {
         null
     } catch (e: ArithmeticException) {
         null
+    }
+
+    /** True when the reminder is on but will never fire again because its end rule is reached. */
+    fun hasEnded(
+        config: ReminderConfig,
+        dosesLogged: Int,
+        now: Instant = Instant.now(),
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): Boolean = config.isOn && (
+        hasEndedByDoses(config, dosesLogged) ||
+            (config.endMode == ReminderEndMode.ON_DATE && computeNextFireTime(config, now, zone, dosesLogged) == null)
+        )
+
+    private fun hasEndedByDoses(config: ReminderConfig, dosesLogged: Int): Boolean =
+        config.endMode == ReminderEndMode.AFTER_DOSES &&
+            (config.endAfterDoses == null || dosesLogged >= config.endAfterDoses)
+
+    /** The end date is inclusive: a reminder may still fire at any time on that day. */
+    private fun isBeforeEndDate(config: ReminderConfig, fireAt: Instant, zone: ZoneId): Boolean {
+        if (config.endMode != ReminderEndMode.ON_DATE) return true
+        val endDate = config.endDate ?: return false
+        return fireAt.atZone(zone).toLocalDate() <= endDate
     }
 
     private fun nextDaysOfWeekFireTime(config: ReminderConfig, now: Instant, zone: ZoneId): Instant? {

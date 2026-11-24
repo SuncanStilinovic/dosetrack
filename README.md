@@ -22,7 +22,7 @@ Screenshots use fictional sample data.
 - **Site rotation.** A grid splits the body diagram into injection zones, and previous injection sites are highlighted on it (the count is configurable).
 - **Medications.** Save medications with a dose in mg, mL, mcg, IU or units, and how each is taken (injection, oral, topical, inhaled or other). Doses of medications that aren't injected are logged without a body site.
 - **History.** Browse, edit and delete every entry.
-- **Reminders.** Remind on chosen days of the week, or every N hours, days, weeks or months. Reminders are re-armed after a reboot, time change or app update. Lock-screen notifications are discreet.
+- **Reminders.** Each medication can have its own reminder: on chosen days of the week, or every N hours, days, weeks or months. A reminder can run indefinitely, end on a date, or end after a number of logged doses. Tapping the notification opens the log with that medication selected. Reminders are re-armed after a reboot, time change or app update. Lock-screen notifications are discreet.
 - **Encrypted backups.** Export to a file or share it, then restore on any device.
 
 ## Privacy and security
