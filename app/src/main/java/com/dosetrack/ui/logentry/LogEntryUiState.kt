@@ -19,7 +19,6 @@ data class LogEntryUiState(
     val notes: String = "",
     val medications: List<Medication> = emptyList(),
     val historicalSites: List<SitePoint> = emptyList(),
-    val showGuide: Boolean = false,
 ) {
     val isValid: Boolean
         get() = (isNoteOnly || hasValidSite) && DataRules.isValidRecordInstant(timestamp)

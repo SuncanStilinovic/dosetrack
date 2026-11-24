@@ -46,7 +46,6 @@ class HistoryImporter(
 
         parsed.settings?.let { settings ->
             settingsRepository.updateSiteHistoryCount(settings.siteHistoryCount)
-            settingsRepository.updateShowInjectionGuide(settings.showInjectionGuide)
             settings.use24HourClock?.let { settingsRepository.updateUse24HourClock(it) }
             val reminder = settings.reminderConfig
             settingsRepository.updateReminderConfig(reminder)

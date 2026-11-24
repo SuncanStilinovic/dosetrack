@@ -46,7 +46,6 @@ object CsvExporter {
 
     object SettingKeys {
         const val SITE_HISTORY_COUNT = "site_history_count"
-        const val SHOW_INJECTION_GUIDE = "show_injection_guide"
         const val REMINDER_MODE = "reminder_mode"
         const val REMINDER_DAYS = "reminder_days"
         const val REMINDER_TIME_MINUTES = "reminder_time_minutes"
@@ -115,7 +114,6 @@ object CsvExporter {
         val reminder = settings.reminderConfig
         listOf(
             SettingKeys.SITE_HISTORY_COUNT to settings.siteHistoryCount.toString(),
-            SettingKeys.SHOW_INJECTION_GUIDE to settings.showInjectionGuide.toString(),
             SettingKeys.REMINDER_MODE to reminder.mode.name,
             SettingKeys.REMINDER_DAYS to reminder.days.sorted().joinToString(";") { it.name },
             SettingKeys.REMINDER_TIME_MINUTES to reminder.timeOfDayMinutes.toString(),

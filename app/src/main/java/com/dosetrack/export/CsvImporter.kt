@@ -172,8 +172,6 @@ object CsvImporter {
         return AppSettings(
             siteHistoryCount = values[SettingKeys.SITE_HISTORY_COUNT]?.toIntOrNull()?.takeIf { it in AppSettings.SITE_HISTORY_RANGE }
                 ?: defaults.siteHistoryCount,
-            showInjectionGuide = values[SettingKeys.SHOW_INJECTION_GUIDE]?.toBooleanStrictOrNull()
-                ?: defaults.showInjectionGuide,
             reminderConfig = ReminderConfig(
                 mode = values[SettingKeys.REMINDER_MODE]?.let { enumOrNull<ReminderMode>(it) } ?: reminderDefaults.mode,
                 days = values[SettingKeys.REMINDER_DAYS]

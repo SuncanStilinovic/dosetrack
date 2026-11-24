@@ -24,7 +24,6 @@ class SettingsRepository(private val context: Context) {
 
     private object Keys {
         val SITE_HISTORY_COUNT = intPreferencesKey("site_history_count")
-        val SHOW_GUIDE = booleanPreferencesKey("show_injection_guide")
         val REMINDER_MODE = stringPreferencesKey("reminder_mode")
         val REMINDER_DAYS = stringSetPreferencesKey("reminder_days")
         val REMINDER_TIME_MINUTES = intPreferencesKey("reminder_time_minutes")
@@ -41,7 +40,6 @@ class SettingsRepository(private val context: Context) {
         val defaults = AppSettings()
         AppSettings(
             siteHistoryCount = prefs[Keys.SITE_HISTORY_COUNT] ?: defaults.siteHistoryCount,
-            showInjectionGuide = prefs[Keys.SHOW_GUIDE] ?: defaults.showInjectionGuide,
             reminderConfig = ReminderConfig(
                 mode = prefs[Keys.REMINDER_MODE]?.let { ReminderMode.valueOf(it) }
                     ?: defaults.reminderConfig.mode,
@@ -62,10 +60,6 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun updateSiteHistoryCount(count: Int) {
         context.dataStore.edit { it[Keys.SITE_HISTORY_COUNT] = count }
-    }
-
-    suspend fun updateShowInjectionGuide(show: Boolean) {
-        context.dataStore.edit { it[Keys.SHOW_GUIDE] = show }
     }
 
     suspend fun updateUse24HourClock(use24Hour: Boolean) {

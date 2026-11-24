@@ -71,7 +71,7 @@ fun LogEntryScreen(
                 BodyDiagram(
                     currentSite = uiState.site,
                     historicalSites = uiState.historicalSites,
-                    showGuide = uiState.showGuide,
+                    showGuide = true,
                     onSiteSelected = viewModel::updateSite,
                 )
                 Text(

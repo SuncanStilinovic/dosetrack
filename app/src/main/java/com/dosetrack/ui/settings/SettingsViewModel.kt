@@ -55,10 +55,6 @@ class SettingsViewModel(
         viewModelScope.launch { settingsRepository.updateSiteHistoryCount(count) }
     }
 
-    fun updateShowInjectionGuide(show: Boolean) {
-        viewModelScope.launch { settingsRepository.updateShowInjectionGuide(show) }
-    }
-
     fun updateUse24HourClock(use24Hour: Boolean) {
         viewModelScope.launch { settingsRepository.updateUse24HourClock(use24Hour) }
     }

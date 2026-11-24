@@ -46,7 +46,6 @@ class BackupFormatTest {
         )
         val settings = AppSettings(
             siteHistoryCount = 3,
-            showInjectionGuide = true,
             reminderConfig = ReminderConfig(
                 mode = ReminderMode.DAYS_OF_WEEK,
                 days = setOf(DayOfWeek.MONDAY, DayOfWeek.THURSDAY),

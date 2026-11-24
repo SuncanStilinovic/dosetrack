@@ -34,7 +34,6 @@ class LogEntryViewModel(
         }
         viewModelScope.launch {
             settingsRepository.settingsFlow.collect { settings ->
-                uiState = uiState.copy(showGuide = settings.showInjectionGuide)
                 if (!uiState.isNoteOnly) {
                     val sites = injectionRepository.getRecentSites(settings.siteHistoryCount, entryId ?: -1)
                     uiState = uiState.copy(historicalSites = sites)

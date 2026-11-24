@@ -23,7 +23,6 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -123,13 +122,6 @@ fun SettingsScreen(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         )
-        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Show injection guide", modifier = Modifier.weight(1f))
-            Switch(
-                checked = settings.showInjectionGuide,
-                onCheckedChange = viewModel::updateShowInjectionGuide,
-            )
-        }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
