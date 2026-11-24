@@ -17,7 +17,7 @@ android {
         applicationId = "com.dosetrack"
         minSdk = 30 // Android 11: covers phones up to ~5 years old, including un-updated budget devices
         targetSdk = 36
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0"
     }
 
