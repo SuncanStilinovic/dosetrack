@@ -192,6 +192,7 @@ object CsvImporter {
                     ?.takeIf { DataRules.isValidReminderStart(it, now) }
                     ?: reminderDefaults.startAt,
             ),
+            use24HourClock = values[SettingKeys.USE_24_HOUR_CLOCK]?.toBooleanStrictOrNull(),
         )
     }
 

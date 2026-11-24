@@ -53,6 +53,7 @@ object CsvExporter {
         const val REMINDER_INTERVAL_VALUE = "reminder_interval_value"
         const val REMINDER_INTERVAL_UNIT = "reminder_interval_unit"
         const val REMINDER_START_AT = "reminder_start_at"
+        const val USE_24_HOUR_CLOCK = "use_24_hour_clock"
     }
 
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -121,7 +122,9 @@ object CsvExporter {
             SettingKeys.REMINDER_INTERVAL_VALUE to reminder.intervalValue.toString(),
             SettingKeys.REMINDER_INTERVAL_UNIT to reminder.intervalUnit.name,
             SettingKeys.REMINDER_START_AT to reminder.startAt.toString(),
-        ).forEach { (key, value) -> row(listOf(key, value)) }
+            // Left out while unset, so a restore keeps following the target device's clock.
+            settings.use24HourClock?.let { SettingKeys.USE_24_HOUR_CLOCK to it.toString() },
+        ).filterNotNull().forEach { (key, value) -> row(listOf(key, value)) }
     }
 
     private fun yesNo(value: Boolean) = if (value) "Yes" else "No"

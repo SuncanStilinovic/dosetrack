@@ -19,6 +19,7 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.dosetrack.ui.common.ProvideClockFormat
 import com.dosetrack.ui.navigation.DoseTrackNavHost
 import com.dosetrack.ui.navigation.topLevelTabs
 import com.dosetrack.ui.theme.DoseTrackTheme
@@ -29,45 +30,47 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             DoseTrackTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    val navController = rememberNavController()
-                    val backStackEntry by navController.currentBackStackEntryAsState()
-                    val currentDestination = backStackEntry?.destination
+                ProvideClockFormat {
+                    Surface(modifier = Modifier.fillMaxSize()) {
+                        val navController = rememberNavController()
+                        val backStackEntry by navController.currentBackStackEntryAsState()
+                        val currentDestination = backStackEntry?.destination
 
-                    Scaffold(
-                        bottomBar = {
-                            val isTopLevel = topLevelTabs.any { tab ->
-                                currentDestination?.hierarchy?.any { it.route == tab.destination.route } == true
-                            }
-                            if (isTopLevel) {
-                                NavigationBar {
-                                    topLevelTabs.forEach { tab ->
-                                        val selected = currentDestination?.hierarchy?.any {
-                                            it.route == tab.destination.route
-                                        } == true
-                                        NavigationBarItem(
-                                            selected = selected,
-                                            onClick = {
-                                                navController.navigate(tab.destination.route) {
-                                                    popUpTo(navController.graph.findStartDestination().id) {
-                                                        saveState = true
+                        Scaffold(
+                            bottomBar = {
+                                val isTopLevel = topLevelTabs.any { tab ->
+                                    currentDestination?.hierarchy?.any { it.route == tab.destination.route } == true
+                                }
+                                if (isTopLevel) {
+                                    NavigationBar {
+                                        topLevelTabs.forEach { tab ->
+                                            val selected = currentDestination?.hierarchy?.any {
+                                                it.route == tab.destination.route
+                                            } == true
+                                            NavigationBarItem(
+                                                selected = selected,
+                                                onClick = {
+                                                    navController.navigate(tab.destination.route) {
+                                                        popUpTo(navController.graph.findStartDestination().id) {
+                                                            saveState = true
+                                                        }
+                                                        launchSingleTop = true
+                                                        restoreState = true
                                                     }
-                                                    launchSingleTop = true
-                                                    restoreState = true
-                                                }
-                                            },
-                                            icon = { Icon(painterResource(tab.iconRes), contentDescription = tab.label) },
-                                            label = { Text(tab.label) },
-                                        )
+                                                },
+                                                icon = { Icon(painterResource(tab.iconRes), contentDescription = tab.label) },
+                                                label = { Text(tab.label) },
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                        },
-                    ) { padding ->
-                        DoseTrackNavHost(
-                            navController = navController,
-                            modifier = Modifier.fillMaxSize().padding(padding),
-                        )
+                            },
+                        ) { padding ->
+                            DoseTrackNavHost(
+                                navController = navController,
+                                modifier = Modifier.fillMaxSize().padding(padding),
+                            )
+                        }
                     }
                 }
             }

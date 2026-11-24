@@ -31,6 +31,7 @@ class SettingsRepository(private val context: Context) {
         val REMINDER_INTERVAL_VALUE = intPreferencesKey("reminder_interval_value")
         val REMINDER_INTERVAL_UNIT = stringPreferencesKey("reminder_interval_unit")
         val REMINDER_START_AT = longPreferencesKey("reminder_start_at")
+        val USE_24_HOUR_CLOCK = booleanPreferencesKey("use_24_hour_clock")
     }
 
     /** Stable fallback anchor so an unsaved interval start doesn't drift on every emission. */
@@ -55,6 +56,7 @@ class SettingsRepository(private val context: Context) {
                 startAt = prefs[Keys.REMINDER_START_AT]?.let { Instant.ofEpochMilli(it) }
                     ?: defaultStartAt,
             ),
+            use24HourClock = prefs[Keys.USE_24_HOUR_CLOCK],
         )
     }
 
@@ -64,6 +66,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun updateShowInjectionGuide(show: Boolean) {
         context.dataStore.edit { it[Keys.SHOW_GUIDE] = show }
+    }
+
+    suspend fun updateUse24HourClock(use24Hour: Boolean) {
+        context.dataStore.edit { it[Keys.USE_24_HOUR_CLOCK] = use24Hour }
     }
 
     suspend fun updateReminderConfig(config: ReminderConfig) {

@@ -55,6 +55,7 @@ class BackupFormatTest {
                 intervalUnit = IntervalUnit.WEEKS,
                 startAt = t0,
             ),
+            use24HourClock = true,
         )
 
         val csv = CsvExporter.buildBackup(
@@ -275,6 +276,18 @@ $settingsRows
         assertEquals(defaults.reminderConfig.timeOfDayMinutes, restored.reminderConfig.timeOfDayMinutes)
         assertEquals(defaults.reminderConfig.mode, restored.reminderConfig.mode)
         assertTrue(DataRules.isValidReminderStart(restored.reminderConfig.startAt))
+    }
+
+    @Test
+    fun `clock format is left unset when the backup has none`() {
+        val parsed = parse(backup(goodMed, "", "site_history_count,3"))
+        assertEquals(null, parsed.settings!!.use24HourClock)
+    }
+
+    @Test
+    fun `unset clock format is not exported`() {
+        val csv = CsvExporter.buildBackup(emptyList(), emptyList(), AppSettings(), zone)
+        assertTrue(CsvExporter.SettingKeys.USE_24_HOUR_CLOCK !in csv)
     }
 
     @Test

@@ -59,6 +59,10 @@ class SettingsViewModel(
         viewModelScope.launch { settingsRepository.updateShowInjectionGuide(show) }
     }
 
+    fun updateUse24HourClock(use24Hour: Boolean) {
+        viewModelScope.launch { settingsRepository.updateUse24HourClock(use24Hour) }
+    }
+
     fun updateReminderConfig(config: ReminderConfig) {
         viewModelScope.launch {
             settingsRepository.updateReminderConfig(config)

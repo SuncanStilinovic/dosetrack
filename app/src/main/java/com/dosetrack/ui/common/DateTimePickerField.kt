@@ -43,10 +43,11 @@ fun DateTimePickerField(
     var showTimePicker by remember { mutableStateOf(false) }
     var pendingDateMillis by remember { mutableStateOf<Long?>(null) }
     val zone = ZoneId.systemDefault()
+    val use24Hour = LocalUse24HourClock.current
 
     Box(modifier = modifier.fillMaxWidth()) {
         OutlinedTextField(
-            value = value.toDisplayString(),
+            value = value.toDisplayString(use24Hour),
             onValueChange = {},
             readOnly = true,
             label = { Text("Date & time") },
@@ -102,7 +103,7 @@ fun DateTimePickerField(
         val timePickerState = rememberTimePickerState(
             initialHour = existing.hour,
             initialMinute = existing.minute,
-            is24Hour = false,
+            is24Hour = use24Hour,
         )
         AlertDialog(
             onDismissRequest = { showTimePicker = false },

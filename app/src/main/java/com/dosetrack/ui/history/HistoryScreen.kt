@@ -29,6 +29,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dosetrack.data.model.InjectionWithMedication
 import com.dosetrack.di.appContainer
 import com.dosetrack.ui.common.ConfirmDeleteDialog
+import com.dosetrack.ui.common.LocalUse24HourClock
 import com.dosetrack.util.toDisplayString
 import androidx.compose.ui.res.painterResource
 import com.dosetrack.R
@@ -102,7 +103,7 @@ private fun HistoryRow(
             HistoryItemThumbnail(entry = entry)
 
             Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-                Text(entry.injection.timestamp.toDisplayString())
+                Text(entry.injection.timestamp.toDisplayString(LocalUse24HourClock.current))
                 entry.medication?.let { medication ->
                     Text("${medication.name} (${medication.dosageLabel})")
                 }

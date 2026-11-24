@@ -35,6 +35,8 @@ import com.dosetrack.data.settings.IntervalUnit
 import com.dosetrack.data.settings.ReminderConfig
 import com.dosetrack.data.settings.ReminderMode
 import com.dosetrack.ui.common.DateTimePickerField
+import com.dosetrack.ui.common.LocalUse24HourClock
+import com.dosetrack.util.formatTimeOfDay
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
@@ -117,6 +119,7 @@ private fun DaysOfWeekFields(config: ReminderConfig, onConfigChange: (ReminderCo
     var showTimePicker by remember { mutableStateOf(false) }
     val hour = config.timeOfDayMinutes / 60
     val minute = config.timeOfDayMinutes % 60
+    val use24Hour = LocalUse24HourClock.current
 
     LazyRow(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
         items(allDays) { day ->
@@ -134,11 +137,11 @@ private fun DaysOfWeekFields(config: ReminderConfig, onConfigChange: (ReminderCo
     }
 
     Button(onClick = { showTimePicker = true }, modifier = Modifier.padding(top = 8.dp)) {
-        Text("Time: %02d:%02d".format(hour, minute))
+        Text("Time: ${formatTimeOfDay(config.timeOfDayMinutes, use24Hour)}")
     }
 
     if (showTimePicker) {
-        val timePickerState = rememberTimePickerState(initialHour = hour, initialMinute = minute, is24Hour = false)
+        val timePickerState = rememberTimePickerState(initialHour = hour, initialMinute = minute, is24Hour = use24Hour)
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showTimePicker = false },
             confirmButton = {

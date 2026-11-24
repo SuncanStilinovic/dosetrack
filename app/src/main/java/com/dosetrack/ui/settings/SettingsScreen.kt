@@ -12,14 +12,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -46,6 +50,7 @@ import com.dosetrack.di.appContainer
 import com.dosetrack.export.BackupCrypto
 import com.dosetrack.export.ImportResult
 import com.dosetrack.export.ShareIntentFactory
+import com.dosetrack.ui.common.LocalUse24HourClock
 import com.dosetrack.util.PermissionUtils
 
 @Composable
@@ -149,6 +154,21 @@ fun SettingsScreen(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
+        Text("Clock")
+        val use24Hour = LocalUse24HourClock.current
+        ClockFormatRow(
+            label = "12-hour (1:30 PM)",
+            selected = !use24Hour,
+            onClick = { viewModel.updateUse24HourClock(false) },
+        )
+        ClockFormatRow(
+            label = "24-hour (13:30)",
+            selected = use24Hour,
+            onClick = { viewModel.updateUse24HourClock(true) },
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
         Text("Data")
         val isExporting = exportState is ExportUiState.Running
         Row(modifier = Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -223,6 +243,21 @@ fun SettingsScreen(
             },
             onDismiss = { exportPasswordFor = null },
         )
+    }
+}
+
+@Composable
+private fun ClockFormatRow(label: String, selected: Boolean, onClick: () -> Unit) {
+    // Same layout as the reminder mode rows above, so the two sections line up.
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(selected = selected, onClick = null, modifier = Modifier.minimumInteractiveComponentSize())
+        Text(label)
     }
 }
 
