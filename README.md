@@ -7,11 +7,12 @@ All data stays on the device. The app has no internet permission, no account, no
 ## Screenshots
 
 <p>
-  <a href="screenshots/1_log_injection.png"><img src="screenshots/1_log_injection.png" width="160" alt="Log an injection on the body diagram"></a>
-  <a href="screenshots/2_history.png"><img src="screenshots/2_history.png" width="160" alt="Injection history"></a>
-  <a href="screenshots/3_reminders.png"><img src="screenshots/3_reminders.png" width="160" alt="Reminder settings"></a>
-  <a href="screenshots/4_medications.png"><img src="screenshots/4_medications.png" width="160" alt="Medication list"></a>
-  <a href="screenshots/5_log_details.png"><img src="screenshots/5_log_details.png" width="160" alt="Injection details form"></a>
+  <a href="screenshots/1_log_drug.png"><img src="screenshots/1_log_drug.png" width="160" alt="Log an injection on the body diagram"></a>
+  <a href="screenshots/2_history.png"><img src="screenshots/2_history.png" width="160" alt="History of doses and notes"></a>
+  <a href="screenshots/3_reminders.png"><img src="screenshots/3_reminders.png" width="160" alt="A medication's reminder, ending after 12 doses"></a>
+  <a href="screenshots/4_medications.png"><img src="screenshots/4_medications.png" width="160" alt="Medication list with routes and reminders"></a>
+  <a href="screenshots/5_log_details.png"><img src="screenshots/5_log_details.png" width="160" alt="Logging a dose of an oral medication"></a>
+  <a href="screenshots/6_guide.png"><img src="screenshots/6_guide.png" width="160" alt="Built-in user guide"></a>
 </p>
 
 Screenshots use fictional sample data.
