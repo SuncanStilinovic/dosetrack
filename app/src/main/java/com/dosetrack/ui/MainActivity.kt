@@ -21,9 +21,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.dosetrack.di.appContainer
 import com.dosetrack.ui.common.ProvideClockFormat
+import com.dosetrack.ui.guide.shouldOpenGuide
+import kotlinx.coroutines.flow.first
 import com.dosetrack.ui.navigation.Destination
 import com.dosetrack.ui.navigation.DoseTrackNavHost
 import com.dosetrack.ui.navigation.topLevelTabs
@@ -50,6 +54,19 @@ class MainActivity : ComponentActivity() {
                                 pendingLogMedicationId = null
                             }
                         }
+                        // First launch only: a brand-new user starts on the guide. The flag is set either
+                        // way, so this check never runs again (rotation re-runs it, but finds the flag set).
+                        LaunchedEffect(Unit) {
+                            val container = appContainer()
+                            if (container.settingsRepository.guideSeen.first()) return@LaunchedEffect
+                            val open = shouldOpenGuide(
+                                guideSeen = false,
+                                medicationCount = container.medicationRepository.observeAll().first().size,
+                                entryCount = container.injectionRepository.observeAllWithMedication().first().size,
+                            )
+                            container.settingsRepository.markGuideSeen()
+                            if (open && pendingLogMedicationId == null) navController.navigateToTab(Destination.Guide)
+                        }
                         val backStackEntry by navController.currentBackStackEntryAsState()
                         val currentDestination = backStackEntry?.destination
 
@@ -66,15 +83,7 @@ class MainActivity : ComponentActivity() {
                                             } == true
                                             NavigationBarItem(
                                                 selected = selected,
-                                                onClick = {
-                                                    navController.navigate(tab.destination.route) {
-                                                        popUpTo(navController.graph.findStartDestination().id) {
-                                                            saveState = true
-                                                        }
-                                                        launchSingleTop = true
-                                                        restoreState = true
-                                                    }
-                                                },
+                                                onClick = { navController.navigateToTab(tab.destination) },
                                                 icon = { Icon(painterResource(tab.iconRes), contentDescription = tab.label) },
                                                 label = { Text(tab.label) },
                                             )
@@ -91,6 +100,15 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    /** Switches to a bottom-bar tab, keeping each tab's own back stack, as a tab tap does. */
+    private fun NavHostController.navigateToTab(destination: Destination) {
+        navigate(destination.route) {
+            popUpTo(graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
         }
     }
 

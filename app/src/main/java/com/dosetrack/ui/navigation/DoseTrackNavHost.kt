@@ -7,6 +7,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.dosetrack.ui.guide.GuideScreen
 import com.dosetrack.ui.history.HistoryScreen
 import com.dosetrack.ui.home.HomeScreen
 import com.dosetrack.ui.logentry.LogEntryScreen
@@ -26,7 +27,7 @@ fun DoseTrackNavHost(
     ) {
         composable(Destination.Home.route) {
             HomeScreen(
-                onLogInjection = { navController.navigate(Destination.LogEntry.route(noteOnly = false)) },
+                onLogDrug = { navController.navigate(Destination.LogEntry.route(noteOnly = false)) },
                 onAddNote = { navController.navigate(Destination.LogEntry.route(noteOnly = true)) },
             )
         }
@@ -43,6 +44,9 @@ fun DoseTrackNavHost(
         }
         composable(Destination.Settings.route) {
             SettingsScreen()
+        }
+        composable(Destination.Guide.route) {
+            GuideScreen(onAddMedication = { navController.navigate(Destination.MedicationEdit.route()) })
         }
         composable(
             route = Destination.LogEntry.route,

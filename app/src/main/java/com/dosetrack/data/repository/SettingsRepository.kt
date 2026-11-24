@@ -20,6 +20,9 @@ class SettingsRepository(private val context: Context) {
         val SITE_HISTORY_COUNT = intPreferencesKey("site_history_count")
         val USE_24_HOUR_CLOCK = booleanPreferencesKey("use_24_hour_clock")
 
+        /** Set once the first-launch check for opening the guide has run; device-only, not backed up. */
+        val GUIDE_SEEN = booleanPreferencesKey("guide_seen")
+
         /** The single app-wide reminder of versions up to 1.3.x; reminders are now per medication. */
         val LEGACY_REMINDER = listOf(
             stringPreferencesKey("reminder_mode"),
@@ -45,6 +48,12 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun updateUse24HourClock(use24Hour: Boolean) {
         context.dataStore.edit { it[Keys.USE_24_HOUR_CLOCK] = use24Hour }
+    }
+
+    val guideSeen: Flow<Boolean> = context.dataStore.data.map { it[Keys.GUIDE_SEEN] ?: false }
+
+    suspend fun markGuideSeen() {
+        context.dataStore.edit { it[Keys.GUIDE_SEEN] = true }
     }
 
     /** Drops the old app-wide reminder setting, which is no longer used. Safe to call repeatedly. */

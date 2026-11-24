@@ -8,6 +8,7 @@ sealed class Destination(val route: String) {
     data object History : Destination("history")
     data object Medications : Destination("medications")
     data object Settings : Destination("settings")
+    data object Guide : Destination("guide")
 
     data object LogEntry : Destination("log_entry?entryId={entryId}&noteOnly={noteOnly}&medicationId={medicationId}") {
         const val ARG_ENTRY_ID = "entryId"
@@ -39,4 +40,5 @@ val topLevelTabs = listOf(
     TopLevelTab(Destination.History, "History", R.drawable.ic_history),
     TopLevelTab(Destination.Medications, "Medications", R.drawable.ic_medication),
     TopLevelTab(Destination.Settings, "Settings", R.drawable.ic_settings),
+    TopLevelTab(Destination.Guide, "Guide", R.drawable.ic_guide),
 )

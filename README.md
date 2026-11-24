@@ -23,6 +23,7 @@ Screenshots use fictional sample data.
 - **Medications.** Save medications with a dose in mg, mL, mcg, IU or units, and how each is taken (injection, oral, topical, inhaled or other). Doses of medications that aren't injected are logged without a body site.
 - **History.** Browse, edit and delete every entry.
 - **Reminders.** Each medication can have its own reminder: on chosen days of the week, or every N hours, days, weeks or months. A reminder can run indefinitely, end on a date, or end after a number of logged doses. Tapping the notification opens the log with that medication selected. Reminders are re-armed after a reboot, time change or app update. Lock-screen notifications are discreet.
+- **Built-in guide.** A Guide tab explains every feature step by step, and opens automatically the first time a new user starts the app.
 - **Encrypted backups.** Export to a file or share it, then restore on any device.
 
 ## Privacy and security

@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun HomeScreen(
-    onLogInjection: () -> Unit,
+    onLogDrug: () -> Unit,
     onAddNote: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -25,8 +25,8 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
     ) {
         Text("DoseTrack")
-        Button(onClick = onLogInjection) {
-            Text("Log Injection")
+        Button(onClick = onLogDrug) {
+            Text("Log Drug")
         }
         OutlinedButton(onClick = onAddNote) {
             Text("Add Note")

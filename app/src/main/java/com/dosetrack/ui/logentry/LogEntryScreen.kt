@@ -54,8 +54,7 @@ fun LogEntryScreen(
     val title = when {
         entryId != null -> "Edit Entry"
         uiState.isNoteOnly -> "Add Note"
-        uiState.needsSite -> "Log Injection"
-        else -> "Log Dose"
+        else -> "Log Drug"
     }
 
     Scaffold(
