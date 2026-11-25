@@ -56,7 +56,7 @@ See the full [privacy policy](PRIVACY.md).
 | Android Gradle Plugin | 9.5.2 |
 | compileSdk | 37 (minor API level 2) |
 | targetSdk | 36 |
-| minSdk | 30 (Android 11) |
+| minSdk | 29 (Android 10) |
 
 Use a recent Android Studio that supports AGP 9.5.
 

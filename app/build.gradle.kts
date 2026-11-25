@@ -15,10 +15,10 @@ android {
 
     defaultConfig {
         applicationId = "com.dosetrack"
-        minSdk = 30 // Android 11: covers phones up to ~5 years old, including un-updated budget devices
+        minSdk = 29 // Android 10: covers phones up to ~6 years old, including un-updated budget devices
         targetSdk = 36
-        versionCode = 6
-        versionName = "2.1.2"
+        versionCode = 7
+        versionName = "2.2.2"
     }
 
     // Secrets live in ~/.gradle/gradle.properties (dosetrack.*), never in this repo.
