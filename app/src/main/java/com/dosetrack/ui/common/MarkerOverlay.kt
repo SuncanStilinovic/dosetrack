@@ -29,7 +29,8 @@ fun MarkerOverlay(
     grids: List<SiteGrid> = InjectionSiteGrids.grids,
 ) {
     val currentColor = MaterialTheme.colorScheme.primary
-    val historicalColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
+    // Same blue as the current site (and the History thumbnails), lighter so the new pick stands out.
+    val historicalColor = currentColor.copy(alpha = 0.45f)
     val guideColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.6f)
 
     Canvas(modifier = modifier) {
