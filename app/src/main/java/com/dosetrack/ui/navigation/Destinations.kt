@@ -38,7 +38,7 @@ data class TopLevelTab(
 val topLevelTabs = listOf(
     TopLevelTab(Destination.Home, "Home", R.drawable.ic_home),
     TopLevelTab(Destination.History, "History", R.drawable.ic_history),
-    TopLevelTab(Destination.Medications, "Medications", R.drawable.ic_medication),
+    TopLevelTab(Destination.Medications, "Meds", R.drawable.ic_medication),
     TopLevelTab(Destination.Settings, "Settings", R.drawable.ic_settings),
     TopLevelTab(Destination.Guide, "Guide", R.drawable.ic_guide),
 )

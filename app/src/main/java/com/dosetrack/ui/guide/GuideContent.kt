@@ -37,7 +37,7 @@ object GuideContent {
                 ),
                 GuideBlock.Steps(
                     listOf(
-                        "Open the Medications tab and tap + to add your medication.",
+                        "Open the Meds tab and tap + to add your medication.",
                         "On the same screen, set a reminder if you want one.",
                         "When you take a dose, go to Home and tap \"Log Drug\".",
                         "Open the History tab to see, edit or delete what you've logged.",
@@ -49,7 +49,7 @@ object GuideContent {
         GuideSection(
             "Medications",
             listOf(
-                GuideBlock.Paragraph("Open the Medications tab. Tap + to add a medication, or tap one in the list to edit it."),
+                GuideBlock.Paragraph("Open the Meds tab. Tap + to add a medication, or tap one in the list to edit it."),
                 GuideBlock.Bullets(
                     listOf(
                         "Name: what you call it, for example the brand name on the box.",
@@ -73,7 +73,7 @@ object GuideContent {
             "Reminders",
             listOf(
                 GuideBlock.Paragraph(
-                    "Each medication can have its own reminder. Open the medication from the Medications tab and " +
+                    "Each medication can have its own reminder. Open the medication from the Meds tab and " +
                         "scroll down to \"Reminder\". Choose one of:",
                 ),
                 GuideBlock.Bullets(

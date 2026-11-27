@@ -85,7 +85,7 @@ class MainActivity : ComponentActivity() {
                                                 selected = selected,
                                                 onClick = { navController.navigateToTab(tab.destination) },
                                                 icon = { Icon(painterResource(tab.iconRes), contentDescription = tab.label) },
-                                                label = { Text(tab.label) },
+                                                label = { Text(tab.label, maxLines = 1, softWrap = false) },
                                             )
                                         }
                                     }
