@@ -13,17 +13,20 @@ All data stays on the device. The app has no internet permission, no account, no
   <a href="screenshots/4_medications.png"><img src="screenshots/4_medications.png" width="160" alt="Medication list with routes and reminders"></a>
   <a href="screenshots/5_log_details.png"><img src="screenshots/5_log_details.png" width="160" alt="Logging a dose of an oral medication"></a>
   <a href="screenshots/6_guide.png"><img src="screenshots/6_guide.png" width="160" alt="Built-in user guide"></a>
+  <a href="screenshots/7_home.png"><img src="screenshots/7_home.png" width="160" alt="Home screen with quick actions and the app version"></a>
 </p>
 
 Screenshots use fictional sample data.
 
 ## Features
 
+- **Home screen.** One tap to log a dose, add a note or add a new medication. The installed version is shown in the top-right corner.
 - **Injection log.** Tap the site on a body diagram, pick a medication and dose, and record reactions and notes. Note-only entries are supported for days without an injection.
-- **Site rotation.** A grid splits the body diagram into injection zones, and previous injection sites are highlighted on it (the count is configurable).
-- **Medications.** Save medications with a dose in mg, mL, mcg, IU or units, and how each is taken (injection, oral, topical, inhaled or other). Doses of medications that aren't injected are logged without a body site.
+- **Site rotation.** A grid splits the body diagram into injection zones, and previous injection sites are shaded in light blue on it (the count is configurable), so the newly picked site in solid blue stands out.
+- **Medications.** Add medications from the Meds tab or straight from Home. Save medications with a dose in mg, mL, mcg, IU or units, and how each is taken (injection, oral, topical, inhaled or other). Doses of medications that aren't injected are logged without a body site.
 - **History.** Browse, edit and delete every entry.
 - **Reminders.** Each medication can have its own reminder: on chosen days of the week, or every N hours, days, weeks or months. A reminder can run indefinitely, end on a date, or end after a number of logged doses. Tapping the notification opens the log with that medication selected. Reminders are re-armed after a reboot, time change or app update. Lock-screen notifications are discreet.
+- **Bottom navigation.** Home, History, Meds, Settings and Guide tabs. Labels stay on one line, even with a wide system font or a larger font size.
 - **Built-in guide.** A Guide tab explains every feature step by step, and opens automatically the first time a new user starts the app.
 - **Encrypted backups.** Export to a file or share it, then restore on any device.
 
@@ -94,7 +97,18 @@ Then build the Play Store bundle:
 # Output: app/build/outputs/bundle/release/app-release.aab
 ```
 
+Before each Play upload, raise `versionCode` and `versionName` in `app/build.gradle.kts`. Play rejects a `versionCode` it has seen before. The Home screen reads `versionName` through `BuildConfig.VERSION_NAME`, so it always shows the version you built.
+
 Never commit keystores. `*.jks` and `*.keystore` are already in `.gitignore`.
+
+### Store assets
+
+- `screenshots/`: Play Store and README screenshots, 1280×2560, taken on a Pixel 9 Pro emulator with the status and gesture bars cropped off.
+- `play-store/feature_graphic_1024x500.png`: the Play feature graphic, built from the Log Drug screenshot. Rebuild it whenever that screenshot changes:
+
+```bash
+python3 play-store/feature_graphic.py play-store screenshots/1_log_drug.png
+```
 
 ## Project structure
 
@@ -104,7 +118,7 @@ app/src/main/java/com/dosetrack/
 ├── di/          AppContainer: manual dependency wiring
 ├── export/      Backup export/import, encryption, CSV format, password policy
 ├── reminders/   Alarm scheduling, notification, boot receiver, next-fire-time calculation
-├── ui/          Compose screens and ViewModels (home, log entry, history, medications, settings)
+├── ui/          Compose screens and ViewModels (home, log entry, history, medications, settings, guide)
 └── util/        Date formatting and permission helpers
 ```
 

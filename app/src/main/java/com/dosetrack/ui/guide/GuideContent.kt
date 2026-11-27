@@ -49,7 +49,10 @@ object GuideContent {
         GuideSection(
             "Medications",
             listOf(
-                GuideBlock.Paragraph("Open the Meds tab. Tap + to add a medication, or tap one in the list to edit it."),
+                GuideBlock.Paragraph(
+                    "Open the Meds tab. Tap + to add a medication, or tap one in the list to edit it. You can also " +
+                        "add one straight from Home with \"Add New Medication\".",
+                ),
                 GuideBlock.Bullets(
                     listOf(
                         "Name: what you call it, for example the brand name on the box.",
@@ -286,7 +289,12 @@ object GuideContent {
                     ),
                 ),
                 GuideBlock.Paragraph("Importing says the backup was made by a newer version"),
-                GuideBlock.Bullets(listOf("Update DoseTrack from Google Play, then import again.")),
+                GuideBlock.Bullets(
+                    listOf(
+                        "Update DoseTrack from Google Play, then import again. Your current version is shown in " +
+                            "the top-right corner of Home.",
+                    ),
+                ),
                 GuideBlock.Paragraph("Times show in the wrong format"),
                 GuideBlock.Bullets(listOf("Choose 12-hour or 24-hour under \"Clock\" in Settings.")),
             ),
@@ -295,7 +303,8 @@ object GuideContent {
             "About DoseTrack",
             listOf(
                 GuideBlock.Paragraph(
-                    "DoseTrack is free and open source (GPL-3.0), with no ads and no data collection.",
+                    "DoseTrack is free and open source (GPL-3.0), with no ads and no data collection. The version " +
+                        "you have is shown in the top-right corner of Home.",
                 ),
                 GuideBlock.Tip(
                     "DoseTrack is a personal logging tool, not a medical device. It doesn't give medical advice or " +
