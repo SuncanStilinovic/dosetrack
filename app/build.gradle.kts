@@ -17,8 +17,8 @@ android {
         applicationId = "com.dosetrack"
         minSdk = 29 // Android 10: covers phones up to ~6 years old, including un-updated budget devices
         targetSdk = 36
-        versionCode = 7
-        versionName = "2.2.2"
+        versionCode = 8
+        versionName = "2.3.2"
     }
 
     // Secrets live in ~/.gradle/gradle.properties (dosetrack.*), never in this repo.
@@ -44,6 +44,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true // Home screen shows BuildConfig.VERSION_NAME
     }
 }
 
