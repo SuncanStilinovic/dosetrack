@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 fun HomeScreen(
     onLogDrug: () -> Unit,
     onAddNote: () -> Unit,
+    onAddMedication: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -30,6 +31,9 @@ fun HomeScreen(
         }
         OutlinedButton(onClick = onAddNote) {
             Text("Add Note")
+        }
+        OutlinedButton(onClick = onAddMedication) {
+            Text("Add New Medication")
         }
     }
 }

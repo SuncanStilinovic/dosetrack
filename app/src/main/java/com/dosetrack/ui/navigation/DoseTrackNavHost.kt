@@ -29,6 +29,7 @@ fun DoseTrackNavHost(
             HomeScreen(
                 onLogDrug = { navController.navigate(Destination.LogEntry.route(noteOnly = false)) },
                 onAddNote = { navController.navigate(Destination.LogEntry.route(noteOnly = true)) },
+                onAddMedication = { navController.navigate(Destination.MedicationEdit.route()) },
             )
         }
         composable(Destination.History.route) {
