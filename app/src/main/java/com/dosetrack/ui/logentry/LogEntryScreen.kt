@@ -1,5 +1,6 @@
 package com.dosetrack.ui.logentry
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -45,7 +46,8 @@ fun LogEntryScreen(
     modifier: Modifier = Modifier,
     preselectedMedicationId: Long? = null,
 ) {
-    val container = LocalContext.current.appContainer()
+    val context = LocalContext.current
+    val container = context.appContainer()
     val viewModel: LogEntryViewModel = viewModel(
         factory = LogEntryViewModelFactory(container, entryId, noteOnly, preselectedMedicationId),
     )
@@ -123,7 +125,19 @@ fun LogEntryScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = { viewModel.save(onDone) },
+                onClick = {
+                    viewModel.save {
+                        // Only a newly logged dose gets the confirmation; edits and notes close silently.
+                        if (entryId == null && !uiState.isNoteOnly) {
+                            Toast.makeText(
+                                context.applicationContext,
+                                "Drug application added and available in history.",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                        onDone()
+                    }
+                },
                 enabled = uiState.isValid,
                 modifier = Modifier.fillMaxWidth(),
             ) {
