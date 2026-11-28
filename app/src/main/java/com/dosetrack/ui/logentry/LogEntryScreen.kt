@@ -127,15 +127,13 @@ fun LogEntryScreen(
             Button(
                 onClick = {
                     viewModel.save {
-                        // New doses and notes get a confirmation; edits close silently.
-                        if (entryId == null) {
-                            val message = if (uiState.isNoteOnly) {
-                                "Note added and available in history."
-                            } else {
-                                "Drug application added and available in history."
-                            }
-                            Toast.makeText(context.applicationContext, message, Toast.LENGTH_SHORT).show()
+                        val message = when {
+                            entryId != null && uiState.isNoteOnly -> "Note updated in history."
+                            entryId != null -> "Drug application updated in history."
+                            uiState.isNoteOnly -> "Note added and available in history."
+                            else -> "Drug application added and available in history."
                         }
+                        Toast.makeText(context.applicationContext, message, Toast.LENGTH_SHORT).show()
                         onDone()
                     }
                 },

@@ -170,14 +170,12 @@ fun MedicationEditScreen(
             Button(
                 onClick = {
                     viewModel.save {
-                        // A new medication gets a confirmation; edits close silently.
-                        if (medicationId == null) {
-                            Toast.makeText(
-                                context.applicationContext,
-                                "Medication added and available in Meds.",
-                                Toast.LENGTH_SHORT,
-                            ).show()
+                        val message = if (medicationId == null) {
+                            "Medication added and available in Meds."
+                        } else {
+                            "Medication updated in Meds."
                         }
+                        Toast.makeText(context.applicationContext, message, Toast.LENGTH_SHORT).show()
                         onDone()
                     }
                 },
