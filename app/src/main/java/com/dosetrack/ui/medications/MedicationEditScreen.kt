@@ -1,5 +1,6 @@
 package com.dosetrack.ui.medications
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -44,7 +45,8 @@ fun MedicationEditScreen(
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val container = LocalContext.current.appContainer()
+    val context = LocalContext.current
+    val container = context.appContainer()
     val viewModel: MedicationEditViewModel = viewModel(
         factory = MedicationEditViewModelFactory(container, medicationId),
     )
@@ -166,7 +168,19 @@ fun MedicationEditScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = { viewModel.save(onDone) },
+                onClick = {
+                    viewModel.save {
+                        // A new medication gets a confirmation; edits close silently.
+                        if (medicationId == null) {
+                            Toast.makeText(
+                                context.applicationContext,
+                                "Medication added and available in Meds.",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                        onDone()
+                    }
+                },
                 enabled = uiState.isValid,
                 modifier = Modifier.fillMaxWidth(),
             ) {
